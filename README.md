@@ -46,12 +46,12 @@ lines:
 * `=` marks an edge or net attributes
 
 
-The `+`, `-`, and `{` share the same format:
-
 ```
 +type:id:output_list:input_list
 -type:id:output_list:input_list
 {type:id:output_list:input_list
+}input_list
+=:net1:net2:input_list
 ```
 
 * `type` is the identifier for the type of cell/entry to perform. Examples
@@ -143,7 +143,7 @@ The following Verilog example (submodule.v) when represented as a netlist, can b
 {module:submodule:\c,\d:\a,\b,loc=7,order=a:b:c:d,bits=1;1;1;1,loc=7
 +inner:foo:\d=h,\y=a:z=\b,y=\b,loc=8
 }loc=9
-+comment:::col=0,txt= some comment\, and another,loc=10
++comment:::col=0,txt= some comment\, and another,loc=a
 }
 ```
 
@@ -161,11 +161,22 @@ The previous example could also use this syntax to represent the same circuit:
 {module:submodule:\c,\d:\a,\b,loc=7
 +inner:foo:\d=h,\y=a:z=\b,y=\b,loc=8
 }loc=9
-+comment:::col=0,txt= some comment\, and another,loc=10
++comment:::col=0,txt= some comment\, and another,loc=a
 }
 ```
 
+
+## Tool version
+
+
+Tools can implement translation between tools. E.g: a CHISEL could generate a
+HIF file, which can be read by something like CIRCT and generate another HIF
+file. Each generated file should start with `{conf:` with at least the `tool`
+and `version` attributes set. To avoid conflicts in `tool` name,
+a full URL should be used. E.g:
+
 ```
-}:input_list
-=from:to:input_list
+{conf:tool=https://github.com/llvm/circt,version=0.1.2
+}
 ```
+
