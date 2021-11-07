@@ -42,7 +42,13 @@ TEST_F(Hif_test, Trivial_test1) {
   h.dump();
 
   h.each([](const Hif::Entry &ent) {
-    std::cout << "entry" << ent.type << "\n";
+    std::cout << "type:" << ent.type << "\n";
+    std::cout << "id:" << ent.id << "\n";
+    for(const auto &e:ent.outputs) {
+      std::cout << "  out.ecat:" << e.cat << "\n";
+      std::cout << "  out.lhs:" << e.lhs << "\n";
+      std::cout << "  out.rhs:" << e.rhs << "\n";
+    }
   });
 
   EXPECT_NE(10,100);

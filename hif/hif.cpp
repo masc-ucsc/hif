@@ -40,6 +40,77 @@ std::tuple<Hif::Entry_cat, size_t> Hif::process_edge_entry(size_t pos) const {
   return {Edge_entry, pos+1};
 }
 
+std::tuple<std::string_view, size_t> Hif::get_next_key(size_t pos) const {
+
+  auto x = base.find(':', pos);
+  if (x == std::string::npos) {
+    std::cerr << "invalid HIF format, could not find : in " << base.substr(pos,20) << "...\n";
+    exit(-3);
+  }
+
+  return {base.substr(pos, x-pos), x+1};
+}
+
+size_t Hif::get_next_list(std::vector<Field> &list, size_t pos) const {
+
+  bool equal_found= false;
+  std::string_view lhs;
+
+  std::string escaped_string;
+  
+  while(true) {
+    auto next = base.find_first_of(",:=\n\\", pos);
+    if (next == std::string::npos) {
+      std::cerr << "invalid HIF format, could not find delimiter " << base.substr(pos,20) << "...\n";
+      exit(-3);
+    }
+
+    if (base[next-1] == '\\') {
+      if (escaped_string.empty()) {
+        escaped_string = base.substr(pos, pos-next-1);
+      }
+      escaped_string.append(1,base[next]);
+      pos = next+1;
+      continue;
+    }else if (!escaped_string.empty()) {
+      escaped_string.append(base.substr(pos,next-pos));
+    }
+
+    if (base[next] == ',') {
+      Field f;
+      if (equal_found) {
+        f.lhs = lhs;
+        equal_found = false;
+      }
+      if (escaped_string.empty()) {
+        f.rhs = base.substr(pos, next-pos);
+      }else{
+        escaped.push_back(escaped_string); // keep ptr stability
+        f.rhs = std::string_view(escaped.back().data(), escaped_string.size());
+      }
+      pos   = next+1;
+
+      list.emplace_back(f);
+    }else if (base[next] == '=') {
+      if (equal_found) {
+        std::cerr << "invalid HIF format, two equals in a row " << base.substr(pos,20) << "...\n";
+        exit(-3);
+      }
+
+      equal_found = true;
+      if (escaped_string.empty()) {
+        lhs = base.substr(pos, next-pos);
+      }else{
+        escaped.push_back(escaped_string); // keep ptr stability
+        lhs = std::string_view(escaped.back().data(), escaped_string.size());
+      }
+      pos   = next+1;
+    }else if (base[next] == ':' || base[next] == '\n') {
+      return pos+1;
+    }
+  }
+}
+
 void Hif::each(const std::function<void(const Entry &entry)> fn) const {
 
   if (base.size()<2)
@@ -74,6 +145,11 @@ void Hif::each(const std::function<void(const Entry &entry)> fn) const {
 
     Entry ent;
     ent.ecat =ecat;
+
+    std::tie(ent.type   , pos) = get_next_key(pos);
+    std::tie(ent.id     , pos) = get_next_key(pos);
+
+    pos = get_next_list(ent.outputs, pos);
 
     fn(ent);
   }

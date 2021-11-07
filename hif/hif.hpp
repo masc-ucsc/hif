@@ -3,6 +3,7 @@
 #pragma once
 
 #include <vector>
+#include <list>
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -41,9 +42,15 @@ public:
   void dump() const;
 protected:
   Hif(int fd_, std::string_view base_);
+
   std::tuple<Entry_cat, size_t> process_edge_entry(size_t pos) const;
+  std::tuple<std::string_view, size_t> get_next_key(size_t pos) const;
+
+  size_t get_next_list(std::vector<Field> &list, size_t pos) const;
 
   int              fd;
   std::string_view base;
+
+  mutable std::list<std::string> escaped; // list of escape strings that must be regenerated
 };
 
