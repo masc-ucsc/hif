@@ -6,7 +6,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-#include "hif/hif.hpp"
+#include "hif/hif_read.hpp"
 
 class Hif_test : public ::testing::Test {
 protected:
@@ -38,16 +38,15 @@ TEST_F(Hif_test, Trivial_test1) {
     "}\n"
   };
 
-  auto h = Hif::input(test);
+  auto h = Hif_read::input(test);
   h.dump();
 
-  h.each([](const Hif::Entry &ent) {
-    std::cout << "type:" << ent.type << "\n";
-    std::cout << "id:" << ent.id << "\n";
-    for(const auto &e:ent.outputs) {
-      std::cout << "  out.ecat:" << e.cat << "\n";
-      std::cout << "  out.lhs:" << e.lhs << "\n";
-      std::cout << "  out.rhs:" << e.rhs << "\n";
+  h.each([](const Hif_read::Statement &stmt) {
+    std::cout << "type:" << stmt.type << "\n";
+    std::cout << "id:" << stmt.id << "\n";
+    for(const auto &e:stmt.io) {
+      std::cout << "  out.lhs:" << e.lhs << ":" << e.lhs_cat << "\n";
+      std::cout << "  out.rhs:" << e.rhs << ":" << e.lhs_cat << "\n";
     }
   });
 

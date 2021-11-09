@@ -353,7 +353,7 @@ ID, there are different offsets:
 The statement follows a regular structure:
 
 
-The first 4 bits selects the statement class:
+The first 4 bits selects the statement class (`cccc`):
 
 * `node` (`0`)
 * `forward` (`1`)
@@ -377,7 +377,7 @@ string size (12 or 20 bits declare size total).
 
 After the `declare` size, the binary sequence is directly encoded, and a new statement starts afterwards.
 
-The `declare` constant type (`tttt`) can be:
+The `declare` constant type (`sttt`) can be:
 
 * net (`ttt=0000`): A string sequence that allows any character and used to connect between inputs and outputs.
 
@@ -398,8 +398,9 @@ The `declare` constant type (`tttt`) can be:
 * The rest are reserved for future use.
 
 
-The `declare` statement binary encoding looks like `1011_sttt_aaaa_aaaa` when
-`s=1` and `1011_sttt_aaaa_aaaa_bbbb_bbbb` when `s=0`.
+The `declare` statement binary encoding looks like `1011_sttt_aaaa_yyyy_yyyy` when
+small bit is set (`s=1`) and `1011_sttt_aaaa_yyyy_yyyy_zzzz_zzzz` when `s=0`. The small
+has 12 bits size, and the large has 20 bits to encode the constant size.
 
 
 For the other statements, the 12 bit `type` select a type from the type buffer.

@@ -2,7 +2,7 @@
 
 #include "benchmark/benchmark.h"
 
-#include "hif/hif.hpp"
+#include "hif/hif_read.hpp"
 
 #include <chrono>
 #include <string>
