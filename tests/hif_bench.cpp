@@ -1,11 +1,10 @@
 //  This file is distributed under the BSD 3-Clause License. See LICENSE for details.
 
-#include "benchmark/benchmark.h"
-
-#include "hif/hif_read.hpp"
-
 #include <chrono>
 #include <string>
+
+#include "benchmark/benchmark.h"
+#include "hif/hif_read.hpp"
 
 void code_hif_load() {
   std::string s1(1024, '-');

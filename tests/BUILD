@@ -19,3 +19,12 @@ cc_binary(
         "@com_google_benchmark//:benchmark",
     ],
 )
+
+cc_binary(
+    name = "hif_cat",
+    srcs = ["hif_cat.cpp"],
+    deps = [
+      "//hif",
+      "@fmt",
+    ],
+)

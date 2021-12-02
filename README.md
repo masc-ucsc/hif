@@ -9,37 +9,43 @@ format" and an "encoding" to efficiently store the data format.
 
 The main goals:
 
-* Generic to support multiple tools that may have different hardware Internal Representation (IR)
+* Generic to support multiple tools that may have different hardware Internal
+  Representation (IR)
 * Reasonably fast to load/save files
 * Reasonably compact representation
 * API to read/write HIF files to avoid custom parser/iterator for each tool
 * Version and tool dependence information
-* Use the same format to support control flow (tree) and graph (netlist) representation
+* Use the same format to support control flow (tree) and graph (netlist)
+  representation
 * The HIF data format includes the hardware representation and attributes
-* When the HIF data format is in SSA mode and it does not have custom nesting scopes, tools should
-be able to read it, but may not be able to transform due to unknown semantics.
+* When the HIF data format is in SSA mode and it does not have custom nesting
+  scopes, tools should be able to read it, but may not be able to transform due
+  to unknown semantics.
 
 Non goals:
 
 * Translate IRs across tools. The goal is to be able to load/save, not to
-  translate across IRs. E.g: a FIRRTL 'add' has different semantics than
-  a Verilog 'add'. Also, different IRs may have different bitwidth inference
+  translate across IRs. E.g: a FIRRTL 'add' has different semantics than a
+  Verilog 'add'. Also, different IRs may have different bitwidth inference
   rules.
 
 ## Related Background
 
-There are several hardware design compiler/tools, but this document explanation uses 6
-common tools to showcase different semantics and how to interact with HIF:
+There are several hardware design compiler/tools, but this document explanation
+uses 6 common tools to showcase different semantics and how to interact with
+HIF:
 
 * CIRCT MLIR (https://github.com/llvm/circt), or just MILR.
-* CHISEL CHIRRTL/FIRRRTL (https://github.com/chipsalliance/firrtl, https://circt.llvm.org/docs/RationaleFIRRTL/), or just FIRRTL.
+* CHISEL CHIRRTL/FIRRRTL (https://github.com/chipsalliance/firrtl,
+  https://circt.llvm.org/docs/RationaleFIRRTL/), or just FIRRTL.
 * LiveHD LNAST (https://masc-ucsc.github.io/docs), or just LNAST.
 * LiveHD Lgraph (https://masc-ucsc.github.io), or just Lgraph.
 * Verilog Slang AST (https://github.com/MikePopoloski/slang), or just slang.
 * Verilog RTL netlist, or just RTL.
 
 
-There are several ways to classify the different hardware Intermediate Representations (IR):
+There are several ways to classify the different hardware Intermediate
+Representations (IR):
 
 * Netlist or Tree. A netlist is a graph-like structure with `nodes` and
   `edges`. A `node` can have several `pins` where `edges` connect. An `edge`
@@ -49,17 +55,17 @@ There are several ways to classify the different hardware Intermediate Represent
 
 * Static Single Assignment (SSA). An IR is in which each destination is written
   once and the value is written before use. The SSA hardware IR must also have
-  a way to reference a forward write. This is needed to connect structures in
-  a loop.
+  a way to reference a forward write. This is needed to connect structures in a
+  loop.
 
-* Scoping allows to restrict the visibility of variable definitions in
-  a tree-like structure. There are many possible ways to manage scopes but the
+* Scoping allows to restrict the visibility of variable definitions in a
+  tree-like structure. There are many possible ways to manage scopes but the
   most common is when "previous writes to upper scopes are visible in lower
-  scopes, and writes to lower scopes are not visible to upper scopes unless
-  a previous write exists". Managing scopes without SSA is more difficult
-  because it requires a stack, as a result there are 2 scopes supported in HIF.
-  Simple scopes that are typical scopes with SSA and custom scopes that it is
-  anything else with scopes.
+  scopes, and writes to lower scopes are not visible to upper scopes unless a
+  previous write exists". Managing scopes without SSA is more difficult because
+  it requires a stack, as a result there are 2 scopes supported in HIF.  Simple
+  scopes that are typical scopes with SSA and custom scopes that it is anything
+  else with scopes.
 
 
 MLIR is an tree-like SSA representation with scopes. FIRRTL, slang, and LNAST
@@ -91,65 +97,139 @@ and write should preserve semantics.
 
 
 HIF is a sequence of statements that show connectivity and nesting across the
-statements. Each statement can have a `type`, `instance`, `io`, and
-`attributes`.
+statements.
 
 
-There are some statements that each tool can specialize with custom types:
+HIF goal is to be extensible per tool but with a common syntax. There are only
+statements in HIF, each statement has a `class`. Each statement class has some
+customizable fields per tool but overall a statement can have a `type`,
+`instance`, `ios`, and `attributes`.
 
 
-* `node`: A graph node or statement with multiple ios and attributes. The
-  `node` statement must be SSA. The `type` is tool dependent and specifies
-  operation to perform. The attributes are assigned to the node `instance`. E.g
-  of node use has a `type` of "firrtl.add", "verilog.reduceop", or
-  "module.instance".
+The `instance` is just an alphanumeric identifier.
 
-* `forward`: A forward reference. The output must be SSA. This connects a still
-  not defined io.input to a new defined io.output.
+The `ios` is an ordered list of identifiers with an modifier to indicate if the
+io is an `input` or an `output`.
 
-* `assign`: Connects one to one the io.inputs to the io.outputs. The number of inputs
-  and outputs should match. This is used to indicate that the output of the
-  assign is NOT SSA. If there are any attribute, the attribute is applied to each output.
-
-* `attr`: Similar to assign, but it does not indicate that the SSA is broken. Attributes
-  will be assigned, but no other write changing contents exist. It is possible to
-  replace all the `attr` for `assign` but the tool will be more inneficient and may
-  need to perform an SSA pass afterwards.
-
-* `begin_open_scope`: Marks the begin of a scope that can access the upper scope. The
-  tool can use `type` to indicate further functionality. E.g of use are if/else
-  code blocks with and without SSA.
-
-* `begin_close_scope`: Marks the beging of a scope without access to upper
-  scope. All the inputs and outputs must be explicitly marked. The tool can use
-  the `type` field to indicate scope. E.g: slang could use `module`,
-  `function` as types, FIRRTL could use `circuit`.
-
-* `begin_custom_scope`: Marks the beginning of scope with custom rules about
-  upper scope access. Some tools may not support to read this scope format
-  because the typical blackbox is not enough to encapsulate it.
-
-* `begin_close_function`: Similar to a close scope but not called. The `type`
-  and attributes can provide addition information like a slang module vs
-  a slang function.
-
-* `begin_open_function`: Similar to open scope but the sequence of statements are
-  not called unless explicitly call with a `node` to the `instance` name. E.g of use
-  are CIRCT `firrtl.module` that access upper scope definitions. Another use would be
-  a LNAST closure that captures the upper scope variables.
-
-* `begin_custom_function`: A function call with custom semantics about variable scope.
-
-* `end`: Marks the end of a previously started scope, closure, or function.
-
-* `use`: Allows to set attributes to the reminding statements in the current
-  and lower open scopes. This is used to avoid repeating the same attribute for
-  each statement. E.g: an attribute is to indicate the source file. This allows
-  to write it once instead of setting source file attribute for each statement.
+The `attributes` is a sequence of assignments that assign an string (lhs) to
+another (rhs). The rhs is the attribute name, the lhs is the attribute value.
 
 
-The attributes and ios use a tuple syntax. A tuple is an ordered sequence of elements
-that can be named. The EBNF syntax, not binary encoding, for HIF data format grammar:
+The statement `class` is just an enumerate with these possible values:
+
+* `node` class is used to represent nodes in a graph or AST. Each node has a
+  `type`, `instance`, `ios`, and `attributes`. The `type` is tool dependent and
+  specified the node type. the outputs must be SSA. This means that same output
+  can only be written once.
+
+  + A `node` statement example could be A FIRRTL firrtl.add addition node with an
+    output connecting to net `foo`, and two input connected to `bar1` and
+    `bar2`. The node can have custom per tool like `loc` or `xxx`.
+  ```
+  node add instance_string
+     (output foo, input bar1, input bar2)
+    @(loc=3,xxx=some_string_field_attr)
+  ```
+
+* `assign` class connects inputs to outputs. The number of inputs and outputs
+  should match. Unlike most statements, the output does not need to be SSA.
+  This means that the same variable can be written many times by different
+  assignments. If there are any attribute, the attribute is applied to each
+  output. 
+
+  + An `assign` statement example could be used to express a statement like `out
+    = out + 1`
+  ```
+  node add
+     (output tmp_ssa, input out, input 1)
+  assign
+     (output out, input tmp_ssa)
+  ```
+
+* `forward` class is used to reference a forward still not declared output.  It
+  has the same properties as the `assign` but the input may still not be
+  declared. Like assign, forward nodes only have `ios` and possibility
+  `attributes`. This is needed to express feedback edges. 
+
+  + A `forward` statement example could be a read from a flop still not declared
+  ```
+  forward
+     (output out_net_name, input still_not_declared_net)
+  ```
+
+* `attr` class is used to assign attributes to an identifier. It could be seen
+  like an assign but it has no `ios`. The `attributes` are assigned to the
+  `identifier`.
+
+  + An `attr` statment assigns attributes:
+  ```
+  attr attr_id
+     @(loc=100, foo=bar)
+  ```
+
+* `begin_open_scope` class marks the begin of a scope that can access the upper
+  scope. The tool can use `type` to indicate further functionality. Scopes can
+  also have `ios` and `attributes`. If variables first time used inside the
+  scope must 'live' after the scope is closed, they may be added to the `ios`
+  output list. The scope outputs do not need to be SSA.
+
+  + A `begin_open_scope` statment could be the the taken path of an if-statement. `if a==0 { b = c + 1 }` could be encoded as:
+
+  ```
+  node ==
+    (output tmp, input a, input 0)
+  begin_open_scope if_taken
+    (input tmp)
+  node +
+    (output tmp2, input c, input 1)
+  assign
+    (output b, input tmp2)
+  end
+  ```
+
+* `begin_close_scope` class is similar to `begin_open_scope` but marks the
+  beging of a scope without access to upper scope. As such, all the inputs and
+  outputs must be explicitly marked. The tool can use the `type` field to
+  indicate scope. 
+
+
+* `begin_open_function` class is similar to the `begin_open_scope` but the key
+  difference is that it is not called. A typical use is to to declare a lambda
+  or function that could capture current scope variables as inputs. To call the
+  created function a `node` statement can be used.
+
+  +A `begin_open_function` example could be a CIRCT 'firrtl.module' that access
+  upper scope 'firrtl.circuit' definitions.
+  ```
+  begin_open_function firrtl.module foo_mod
+    (input xx, output yy)
+  ```
+
+* `begin_close_function` class is like the `begin_open_function` but without
+  upper scope access.
+
+  +A `begin_close_function` example is a module or function declaration like a verilog `module foo(input a, output c, input x)`:
+  ```
+  begin_close_scope module_begin foo
+    (input a, output c, input x)
+  ```
+
+* `end` class marks the end of a previously started scope, closure, or
+  function.
+
+* `use` class allows to set attributes to the reminding statements in the
+  current and lower open scopes. This is used to avoid repeating the same
+  attribute for each statement. 
+
+  +A `use` class example is to indicate the file name that applies to the following statments:
+  ```
+  use
+    @(file_name=foo.v)
+  ```
+
+The attributes and ios use a tuple syntax. A tuple is an ordered sequence of
+elements that can be named. The EBNF syntax, not binary encoding, for HIF data
+format grammar:
 
 ```
 start ::= tool_version statement*
@@ -162,10 +242,10 @@ ios ::= '(' io_tuple? ')'
 
 attributes ::= '@(' attr_tuple? ')'
 
-class ::= 'attr' | 'node' | 'forward' | 'assign' 
-        | 'begin_open_scope' | 'begin_close_scope' | 'begin_custom_scope'
-        | 'begin_open_function' | 'begin_close_function' | 'begin_custom_function'
-        |  'end' | 'use'
+class ::= 'node' | 'assign' | 'forward' | 'attr'
+        | 'begin_open_scope' | 'begin_close_scope'
+        | 'begin_open_function' | 'begin_close_function'
+        | 'end' | 'use'
 
 attr_tuple ::= attr_entry ( ',' attr_entry )*
 attr_entry ::= ID '=' ID
@@ -181,8 +261,8 @@ others use `.` to separate struct fields. In HIF an ID can be any sequence of
 bytes where the end is know because the encoding includes the ID size.
 
 
-The first statement should be a `use` to indicate the `tool` and `version`. This
-is needed to distinguish semantics.
+The first statement should be a `use` to indicate the `tool` and `version`.
+This is needed to distinguish semantics.
 
 
 ### Data Format FAQ
@@ -226,6 +306,16 @@ tool=https://github.com/masc-ucsc/livehd/LNAST,version=alpha
 Verilog has `inout`, CIRCT has `analog`. The way to handle it is to
 have an `input` and an `output` with the same name.
 
+#### How do you handle flip in FIRRTL?
+
+The FIRRTL bundle can be expanded to the `ios` and the flipped field
+can have the opposite direction:
+
+```
+begin_scope_function
+  (input io.input.bar, input io.input.foo, output io.input.flipped)
+```
+
 #### How do you handle multiple drivers tri-state logic?
 
 The recommendation here is to create a solution similar to the partial update.
@@ -235,7 +325,7 @@ and a single output. The `bus` can have or not valid bits, this is up to the
 tool semantics.
 
 
-#### Small verilog example?
+#### Small Verilog example?
 
 It is very tool dependent, but this simple Verilog:
 
@@ -331,20 +421,18 @@ statement `type`, and 20 bits for net names and 20 bits for constants.
 ID declaration looks like new statement class (next section). To reference the
 ID, there are different offsets:
 
-* `xxxxxxx00` is an ID with an inlined constant value. The 6 x bits allow for constants
-  from -32 to 31 without the need to reference the circular buffer. When used in `io_entry`
-  the constant implies an input.
+* `00xxxxxx` is an ID with an inlined constant value. The 6 x bits allow for
+  constants from -32 to 31 without the need to reference the circular buffer.
+  When used in `io_entry` the constant implies an input.
 
-* `xxxxxni01` is an ID that points uses `n` bit to decide which circular
-  buffer to point (`1` for net or `0` for constant). The `i` bit indicates if
-  the field is an input. The pointer to the circular buffer is just 5 bits
-  (`xxxxx`).
+* `01ixxxxx_xxxxxxxx` is an ID that points the circular buffer with 13bits.
+  The `i` bit indicates if the field is an input when i is 1, output otherwise. 
 
-* `xxxxxxxx_xxxxxni01` is similar but has 8 additional bits for circular buffer pointer (13 total).
+* `10i0xxxx_xxxxxxxx_xxxxxxxx` is similar but has 7 additional bits for
+  circular buffer pointer (20 total).
 
-* `xxxxxxxx_xxxxxxxx_xxxxxni10` is similar but has 8 additional bits for circular buffer pointer (21 total).
-
-* `111111111` is used to indicate end of ID sequence.
+* `11111111` (255) is used to indicate no valid ID which can be used to
+  indicate end of sequence or no instance ID.
 
 
 ### statement encoding
@@ -356,23 +444,22 @@ The statement follows a regular structure:
 The first 4 bits selects the statement class (`cccc`):
 
 * `node` (`0`)
-* `forward` (`1`)
-* `assign` (`2`)
-* `begin_open_scope` (`3`)
-* `begin_close_scope` (`4`)
-* `begin_custom_scope` (`5`)
+* `assign` (`1`)
+* `forward` (`2`)
+* `attr` (`3`)
+* `begin_open_scope` (`4`)
+* `begin_close_scope` (`5`)
 * `begin_open_function` (`6`)
 * `begin_close_function` (`7`)
-* `begin_custom_function` (`8`)
-* `end` (`9`)
-* `use` (`10`)
-* `declare` (`11`)
-* `12` to `15` are reserved
+* `end` (`8`)
+* `use` (`9`)
+* `declare` (`10`)
+* `11` to `15` are reserved
 
 
 The next 12 bits indicate the `type` for all the statement class with the
 exception of the `declare` which uses the upper 4 bits to select the constant
-type (`ttt`) and the `s` bits to select between 1 or 2 additional bits for the
+type (`ttt`) and the `s` bits to select between 1 or 2 additional bytes for the
 string size (12 or 20 bits declare size total).
 
 After the `declare` size, the binary sequence is directly encoded, and a new statement starts afterwards.
@@ -383,24 +470,26 @@ The `declare` constant type (`sttt`) can be:
 
 * string (`ttt=0001`): A string sequence that allows any character.
 
-* base2 (`ttt=0010`): A little endian number of (0,1) values in two's complement.
+* base2 (`ttt=0010`): A little endian number of (0,1) values in two's
+  complement.
 
-* base3 (`ttt=0011`): A sequence of 2 base2 numbers. The first encodes the 0/1 sequence.
-  The 2nd encodes the verilog `x`. E.g: the 'b0?10 is encoded as "0010" and
-  "0100". If the 2nd number is zero, it means that it can be encoded as base2
-  without loss of information.
+* base3 (`ttt=0011`): A sequence of 2 base2 numbers. The first encodes the 0/1
+  sequence.  The 2nd encodes the Verilog `x`. E.g: the 'b0?10 is encoded as
+  "0010" and "0100". If the 2nd number is zero, it means that it can be encoded
+  as base2 without loss of information.
 
-* base4 (`ttt=0100`): 3 sequences of base2 numbers. The first is 01, the 2nd is 0?, the
-  third is 0z.
+* base4 (`ttt=0100`): 3 sequences of base2 numbers. The first is 01, the 2nd is
+  0?, the third is 0z.
 
 * custom (`ttt=0101`): A per tool sequence of bits to represent a constant.
 
 * The rest are reserved for future use.
 
 
-The `declare` statement binary encoding looks like `1011_sttt_aaaa_yyyy_yyyy` when
-small bit is set (`s=1`) and `1011_sttt_aaaa_yyyy_yyyy_zzzz_zzzz` when `s=0`. The small
-has 12 bits size, and the large has 20 bits to encode the constant size.
+The `declare` statement binary encoding looks like `1011_sttt_xxxx_xxxx` when
+small bit is set (`s=1`) and `1011_sttt_xxxx_xxxx_yyyy_yyyy_zzzz_zzzz` when
+`s=0`. The small has 8 bits size, and the large has 24 bits to encode the
+constant size.
 
 
 For the other statements, the 12 bit `type` select a type from the type buffer.
@@ -474,7 +563,8 @@ binary encoded as (the comments are to explain):
 11111111       # no more attributes
 ```
 
-In the previous example, there are 16 bytes in control and 33 bytes to store the strings. 
+In the previous example, there are 16 bytes in control and 33 bytes to store
+the strings. 
 
 
 
