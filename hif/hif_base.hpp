@@ -49,7 +49,7 @@ public:
     ID_cat           lhs_cat;  // Either String or Net (net in output, string in input)
     ID_cat           rhs_cat;
 
-    const bool operator==(const Tuple_entry &r) const {
+    bool operator==(const Tuple_entry &r) const {
       return input == r.input && lhs == r.lhs && rhs == r.rhs && lhs_cat == r.lhs_cat
              && rhs_cat == r.rhs_cat;
     }
@@ -96,7 +96,7 @@ public:
       attr.emplace_back(lhs, rhs, ID_cat::String_cat, ID_cat::Custom_cat);
     }
 
-    const bool operator==(const Statement &rhs) const {
+    bool operator==(const Statement &rhs) const {
       return sclass == rhs.sclass && instance == rhs.instance && type == rhs.type && io == rhs.io && attr == rhs.attr;
     }
 
