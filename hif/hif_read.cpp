@@ -269,7 +269,7 @@ uint8_t *Hif_read::read_te(uint8_t *ptr, uint8_t *ptr_end, std::vector<Tuple_ent
 
 uint8_t *Hif_read::read_header(uint8_t *ptr, uint8_t *ptr_end, Statement &stmt) {
   uint8_t cccc = (*ptr) >> 4;
-  if (cccc > Statement_class::Use_class) {
+  if (cccc > Statement_class::Use) {
     std::cerr << "Hif_read invalid cccc " << cccc << "\n";
     return ptr_end;
   }

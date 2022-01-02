@@ -22,5 +22,13 @@ int main(int argc, char **argv) {
     exit(-3);
   }
 
-  rd->each([](const Hif_base::Statement &stmt) { stmt.dump(); });
+  bool first=false;
+  rd->each([&first](const Hif_base::Statement &stmt) {
+    if (first && stmt.sclass != Hif_base::Statement_class::Attr) {
+      std::cerr << "not standard HIF. First entry must be attr\n";
+      first=false;
+    }
+
+    stmt.dump();
+  });
 }

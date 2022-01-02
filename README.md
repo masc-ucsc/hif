@@ -147,18 +147,23 @@ The statement `class` is just an enumerate with these possible values:
      @(loc=100, foo=bar)
   ```
 
-* `begin_open_scope` class marks the begin of a scope that can access the upper
+	+The first statement on the HIF file must be an `attr` with the `tool` name
+   and the `version`. Optional but standard fields are `author`, `license`,
+   `date`.
+
+* `open_call` class marks the begin of a scope that can access the upper
   scope. The tool can use `type` to indicate further functionality. Scopes can
   also have `ios` and `attributes`. If variables first time used inside the
   scope must 'live' after the scope is closed, they may be added to the `ios`
   output list. The scope outputs do not need to be SSA.
 
-  + A `begin_open_scope` statment could be the the taken path of an if-statement. `if a==0 { b = c + 1 }` could be encoded as:
+  + A `open_call` statment could be the the taken path of an if-statement. `if
+    a==0 { b = c + 1 }` could be encoded as:
 
   ```
   node ==
     (output tmp, input a, input 0)
-  begin_open_scope if_taken
+  open_call if_taken
     (input tmp)
   node +
     (output tmp2, input c, input 1)
@@ -167,30 +172,30 @@ The statement `class` is just an enumerate with these possible values:
   end
   ```
 
-* `begin_close_scope` class is similar to `begin_open_scope` but marks the
+* `closed_call` class is similar to `open_call` but marks the
   beging of a scope without access to upper scope. As such, all the inputs and
   outputs must be explicitly marked. The tool can use the `type` field to
   indicate scope. 
 
 
-* `begin_open_function` class is similar to the `begin_open_scope` but the key
+* `open_def` class is similar to the `open_call` but the key
   difference is that it is not called. A typical use is to to declare a lambda
   or function that could capture current scope variables as inputs. To call the
   created function a `node` statement can be used.
 
-  +A `begin_open_function` example could be a CIRCT 'firrtl.module' that access
+  +A `open_def` example could be a CIRCT 'firrtl.module' that access
   upper scope 'firrtl.circuit' definitions.
   ```
-  begin_open_function firrtl.module foo_mod
+  open_def firrtl.module foo_mod
     (input xx, output yy)
   ```
 
-* `begin_close_function` class is like the `begin_open_function` but without
+* `closed_def` class is like the `open_def` but without
   upper scope access.
 
-  +A `begin_close_function` example is a module or function declaration like a verilog `module foo(input a, output c, input x)`:
+  +A `closed_def` example is a module or function declaration like a verilog `module foo(input a, output c, input x)`:
   ```
-  begin_close_scope module_begin foo
+  closed_call module_begin foo
     (input a, output c, input x)
   ```
 
@@ -207,6 +212,7 @@ The statement `class` is just an enumerate with these possible values:
     @(file_name=foo.v)
   ```
 
+
 The attributes and ios use a tuple syntax. A tuple is an ordered sequence of
 elements that can be named. The EBNF syntax, not binary encoding, for HIF data
 format grammar:
@@ -214,7 +220,7 @@ format grammar:
 ```
 start ::= tool_version statement*
 
-tool_version ::= 'use' '@(' tool=ID ',' version=XX ')
+tool_version ::= 'attr' '@(' tool=ID ',' version=XX ')
 
 statement ::= class (ID ID?)? ios? attributes?
 
@@ -223,8 +229,8 @@ ios ::= '(' io_tuple? ')'
 attributes ::= '@(' attr_tuple? ')'
 
 class ::= 'node' | 'assign' | 'attr'
-        | 'begin_open_scope' | 'begin_close_scope'
-        | 'begin_open_function' | 'begin_close_function'
+        | 'open_call' | 'closed_call'
+        | 'open_def' | 'closed_def'
         | 'end' | 'use'
 
 attr_tuple ::= attr_entry ( ',' attr_entry )*
@@ -241,9 +247,8 @@ others use `.` to separate struct fields. In HIF an ID can be any sequence of
 bytes where the end is know because the encoding includes the ID size.
 
 
-The first statement should be a `use` to indicate the `tool` and `version`.
-This is needed to distinguish semantics.
-
+The first statement should be a `attr` with at least the `tool` and `version`
+attribute fields. This is needed to distinguish semantics.
 
 ### Data Format FAQ
 
@@ -272,7 +277,7 @@ Tuples are ordered. The declaration order is the order of the input/outputs.
 #### How do you encode the tool and version?
 
 The `tool` name should be a full URL should be used with
-the potential dialect targetted. The version is any string
+the potential dialect targeted. The version is any string
 that the tool will use, but a semantic versioning is a logical string.
 
 ```
@@ -292,7 +297,7 @@ The FIRRTL bundle can be expanded to the `ios` and the flipped field
 can have the opposite direction:
 
 ```
-begin_scope_function
+closed_def
   (input io.input.bar, input io.input.foo, output io.input.flipped)
 ```
 
@@ -325,12 +330,12 @@ It is very tool dependent, but this simple Verilog:
 could be encoded as:
 
 ```
-use 
+attr 
   @(tool=some_harcoded_url,version=alpha)
 use 
   @(file=submodule.v)
 
-begin_close_function module inner 
+closed_def module inner 
    (input z, output a, input y, output h)
   @(loc=2)
   attr
@@ -348,7 +353,7 @@ begin_close_function module inner
 end 
   @(loc=5)
 
-begin_close_function module submodule
+closed_def module submodule
    (input a, input b, output c, output d)
   @(loc=7)
   attr
@@ -451,10 +456,10 @@ The first 4 bits selects the statement class (`cccc`):
 * `node` (`0` or `0000`)
 * `assign` (`1` or `0001`)
 * `attr` (`2` or `0011`)
-* `begin_open_scope` (`3` or `0100`)
-* `begin_close_scope` (`4` or `0101`)
-* `begin_open_function` (`5` or `0110`)
-* `begin_close_function` (`6` or `0111`)
+* `open_call` (`3` or `0100`)
+* `closed_call` (`4` or `0101`)
+* `open_def` (`5` or `0110`)
+* `closed_def` (`6` or `0111`)
 * `end` (`7` or `1000`)
 * `use` (`8` or `1001`)
 * `9` to `15` are reserved

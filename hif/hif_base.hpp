@@ -20,15 +20,15 @@ public:
 
   // statement class (cccc field)
   enum Statement_class : uint8_t {
-    Node_class = 0,
-    Assign_class,
-    Attr_class,
-    Begin_open_scope_class,
-    Begin_close_scope_class,
-    Begin_open_function_class,
-    Begin_close_function_class,
-    End_class,
-    Use_class
+    Node= 0,
+    Assign,
+    Attr,
+    Open_call,
+    Closed_call,
+    Open_def,
+    Closed_def,
+    End,
+    Use
   };
 
   struct Tuple_entry {
@@ -65,7 +65,7 @@ public:
     std::vector<Tuple_entry> io;
     std::vector<Tuple_entry> attr;
 
-    Statement() : sclass(Statement_class::Node_class), type(0) {}
+    Statement() : sclass(Statement_class::Node), type(0) {}
     Statement(Statement_class c) : sclass(c), type(0) {}
 
     void add_input_string(std::string_view lhs, std::string_view rhs) {
@@ -105,7 +105,15 @@ public:
                   const std::vector<Hif_base::Tuple_entry> io) const;
   };
 
-  static Statement create_assign() { return Statement(Statement_class::Assign_class); }
+  static Statement create_node()        { return Statement(Statement_class::Node); }
+  static Statement create_assign()      { return Statement(Statement_class::Assign); }
+  static Statement create_attr()        { return Statement(Statement_class::Attr); }
+  static Statement create_open_call()   { return Statement(Statement_class::Open_call); }
+  static Statement create_closed_call() { return Statement(Statement_class::Closed_call); }
+  static Statement create_open_def()    { return Statement(Statement_class::Open_def); }
+  static Statement create_closed_def()  { return Statement(Statement_class::Closed_def); }
+  static Statement create_end()         { return Statement(Statement_class::End); }
+  static Statement create_use()         { return Statement(Statement_class::Use); }
 
 protected:
   Hif_base() {}
