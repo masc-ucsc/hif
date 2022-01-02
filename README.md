@@ -9,18 +9,14 @@ format" and an "encoding" to efficiently store the data format.
 
 The main goals:
 
-* Generic to support multiple tools that may have different hardware Internal
-  Representation (IR)
+* Generic to support multiple tools that may have different Hardware Internal
+  Representation (HIF)
 * Reasonably fast to load/save files
 * Reasonably compact representation
 * API to read/write HIF files to avoid custom parser/iterator for each tool
 * Version and tool dependence information
 * Use the same format to support control flow (tree) and graph (netlist)
   representation
-* The HIF data format includes the hardware representation and attributes
-* When the HIF data format is in SSA mode and it does not have custom nesting
-  scopes, tools should be able to read it, but may not be able to transform due
-  to unknown semantics.
 
 Non goals:
 
@@ -52,11 +48,6 @@ Representations (IR):
   connects a pair of `pins`. A tree structure is the most typical Abstract
   Syntax Tree (AST) where tree statements, also called nodes in HIF, have an
   order and structure.
-
-* Static Single Assignment (SSA). An IR is in which each destination is written
-  once and the value is written before use. The SSA hardware IR must also have
-  a way to reference a forward write. This is needed to connect structures in a
-  loop.
 
 * Scoping allows to restrict the visibility of variable definitions in a
   tree-like structure. There are many possible ways to manage scopes but the
@@ -146,17 +137,6 @@ The statement `class` is just an enumerate with these possible values:
      (output out, input tmp_ssa)
   ```
 
-* `forward` class is used to reference a forward still not declared output.  It
-  has the same properties as the `assign` but the input may still not be
-  declared. Like assign, forward nodes only have `ios` and possibility
-  `attributes`. This is needed to express feedback edges. 
-
-  + A `forward` statement example could be a read from a flop still not declared
-  ```
-  forward
-     (output out_net_name, input still_not_declared_net)
-  ```
-
 * `attr` class is used to assign attributes to an identifier. It could be seen
   like an assign but it has no `ios`. The `attributes` are assigned to the
   `identifier`.
@@ -242,7 +222,7 @@ ios ::= '(' io_tuple? ')'
 
 attributes ::= '@(' attr_tuple? ')'
 
-class ::= 'node' | 'assign' | 'forward' | 'attr'
+class ::= 'node' | 'assign' | 'attr'
         | 'begin_open_scope' | 'begin_close_scope'
         | 'begin_open_function' | 'begin_close_function'
         | 'end' | 'use'
@@ -391,13 +371,18 @@ The data format sections explains the information to store. The encoding section
 explains how to have an efficient binary encoding.
 
 
+There are two set files `num.id` and `num.st`. The `num` is a decimal value.
+For each number the id file contains all the `ID` declarations used by the stmt
+file. Both files have less than 1M (2^20) entries (IDs for id file, or
+statements or stmt file).
+
+
 ### `ID` encoding
 
-The `ID` can have any sequence of characters or string, but it could also
-encode numerical constants, or net names. Different tools have different
-classes of constants. Verilog supports 0,1,x,z in the encoding. FIRRTL only
-has 0,1 and a concept of unknown for the whole number (not per bit). VHDL
-has even more states per bit.
+The `ID` can have any string and numerical constant. Different tools have
+different classes of constants. Verilog supports 0,1,x,z in the encoding.
+FIRRTL only has 0,1 and a concept of unknown for the whole number (not per
+bit). VHDL has even more states per bit.
 
 
 An inefficient implementation will use strings to represent each constant, net
@@ -406,32 +391,52 @@ problem is that this will be inefficient and tool dependent to distinguish
 between 'ff' as 255 or 'ff' string or 'ff' as net or edge connecting
 input/outputs.
 
+The id file has a list of all the identifiers by the statement file with the
+same number. Each `ID` entry consists of 3 fields: declare type, declare size,
+and payload.
 
-The solution is to support the common numeric constants, strings, and net names
-while supporting to extend with non-standard constant encoding like VHDL. HIF
-splits the large constants in a `declare` statement and the `ID` reference.
+* `declare type`: is a 4 bit field (`sttt`).  `ttt` is the type of `ID` and the
+  `s` bits to select between 1 or 3 bytes for the string size (8 or 24 bits
+   declare size total). The `declare` constant type (`sttt`) can be:
 
-The `ID` reference avoid repeating the constant all over. There are circular
-buffers with the most recently declared type ID, net name ID, and constant ID.
-New IDs are inserted to the circular buffer on declaration. The size of the
-circular buffer is specified at the top of file with a maximum of 12 bits for
-statement `type`, and 20 bits for net names and 20 bits for constants. 
+    + string (`ttt=000`): A string sequence that allows any character.
+
+    + base2 (`ttt=001`): A little endian number of (0,1) values in two's
+      complement.
+
+    + base3 (`ttt=010`): A sequence of 2 base2 numbers. The first encodes the 0/1
+      sequence.  The 2nd encodes the Verilog `x`. E.g: the 'b0?10 is encoded as
+      "0010" and "0100". If the 2nd number is zero, it means that it can be encoded
+      as base2 without loss of information.
+
+    + base4 (`ttt=011`): 3 sequences of base2 numbers. The first is 01, the 2nd is
+      0?, the third is 0z.
+
+    + custom (`ttt=100`): A per tool sequence of bits to represent a constant.
+
+    + `ttt` from 5 to 7 are reserved.
+
+* `declare size` is a 12 or 20 bits to indicate the size of the entry.
+
+The `declare` statement binary encoding looks like `sttt_xxxx` when
+small bit is set (`s=1`) and `sttt_xxxx_yyyy_yyyy_zzzz_zzzz` when
+`s=0`. In both cases `s` bit is the bit 0.
 
 
-ID declaration looks like new statement class (next section). To reference the
-ID, there are different offsets:
+There can be up to 1M IDs. Without any optimization, each ID reference would
+need 20bits. In hardware, some names are more frequently used that others.
+E.g: in BOOM FIRRTL the top 32 names represent over 1/3 of all the
+names. To leverage this, there are two reference long and short reference.
 
-* `00xxxxxx` is an ID with an inlined constant value. The 6 x bits allow for
-  constants from -32 to 31 without the need to reference the circular buffer.
-  When used in `io_entry` the constant implies an input.
+* long reference: `xxxxxxxx_xxxxxxxx_xxxxxee0` (ee is bit 1 and 2) is an ID that points the ID file
+  with 20bits. `ee` encodes the type of ID:
+  + `ee=00` is a port id for an input or attribute
+  + `ee=01` is a port id for an output
+  + `ee=10` is a value to assign to port or net connected
 
-* `01ixxxxx_xxxxxxxx` is an ID that points the circular buffer with 13bits.
-  The `i` bit indicates if the field is an input when i is 1, output otherwise. 
+* short reference: `xxxxxee1` is a software managed cache for the most frequent IDs
 
-* `10i0xxxx_xxxxxxxx_xxxxxxxx` is similar but has 7 additional bits for
-  circular buffer pointer (20 total).
-
-* `11111111` (255) is used to indicate no valid ID which can be used to
+* no reference: `11111111` (255) is used to indicate no valid ID which can be used to
   indicate end of sequence or no instance ID.
 
 
@@ -443,54 +448,19 @@ The statement follows a regular structure:
 
 The first 4 bits selects the statement class (`cccc`):
 
-* `node` (`0`)
-* `assign` (`1`)
-* `forward` (`2`)
-* `attr` (`3`)
-* `begin_open_scope` (`4`)
-* `begin_close_scope` (`5`)
-* `begin_open_function` (`6`)
-* `begin_close_function` (`7`)
-* `end` (`8`)
-* `use` (`9`)
-* `declare` (`10`)
-* `11` to `15` are reserved
+* `node` (`0` or `0000`)
+* `assign` (`1` or `0001`)
+* `attr` (`2` or `0011`)
+* `begin_open_scope` (`3` or `0100`)
+* `begin_close_scope` (`4` or `0101`)
+* `begin_open_function` (`5` or `0110`)
+* `begin_close_function` (`6` or `0111`)
+* `end` (`7` or `1000`)
+* `use` (`8` or `1001`)
+* `9` to `15` are reserved
 
 
-The next 12 bits indicate the `type` for all the statement class with the
-exception of the `declare` which uses the upper 4 bits to select the constant
-type (`ttt`) and the `s` bits to select between 1 or 2 additional bytes for the
-string size (12 or 20 bits declare size total).
-
-After the `declare` size, the binary sequence is directly encoded, and a new statement starts afterwards.
-
-The `declare` constant type (`sttt`) can be:
-
-* net (`ttt=0000`): A string sequence that allows any character and used to connect between inputs and outputs.
-
-* string (`ttt=0001`): A string sequence that allows any character.
-
-* base2 (`ttt=0010`): A little endian number of (0,1) values in two's
-  complement.
-
-* base3 (`ttt=0011`): A sequence of 2 base2 numbers. The first encodes the 0/1
-  sequence.  The 2nd encodes the Verilog `x`. E.g: the 'b0?10 is encoded as
-  "0010" and "0100". If the 2nd number is zero, it means that it can be encoded
-  as base2 without loss of information.
-
-* base4 (`ttt=0100`): 3 sequences of base2 numbers. The first is 01, the 2nd is
-  0?, the third is 0z.
-
-* custom (`ttt=0101`): A per tool sequence of bits to represent a constant.
-
-* The rest are reserved for future use.
-
-
-The `declare` statement binary encoding looks like `1011_sttt_xxxx_xxxx` when
-small bit is set (`s=1`) and `1011_sttt_xxxx_xxxx_yyyy_yyyy_zzzz_zzzz` when
-`s=0`. The small has 8 bits size, and the large has 24 bits to encode the
-constant size.
-
+The next 12 bits indicate the `type` for all the statement class.
 
 For the other statements, the 12 bit `type` select a type from the type buffer.
 If the type is all ones (`0xFFF`) no type is used.
@@ -518,20 +488,19 @@ use
   @(tool=some_harcoded_url,version=alpha)
 ```
 
-binary encoded as (the comments are to explain):
+The binary encoded for `0.id` and `0.st` is the following:
 
+The contents for `0.id`:
 ```
-1011           # declare statement for "tool"
-1001           # small size and string declare
-00000010       # 4 characters in tool
+1000           # sttt: small size and string declare
+0010           # 4 characters in tool
 't'
 'o'
 'o'
 'l'
 
-1011           # declare statment for "some_harcoded_url"
-1001           # small size and string declare
-00010001       # 17 characters in "some_harcoded_url"
+0000           # sttt: small size and string declare
+0000_0000_0000_0001_0001  # 17 characters in "some_harcoded_url"
 's'
 'o'
 'm'
@@ -539,32 +508,45 @@ binary encoded as (the comments are to explain):
 'r'
 'l'
 
-1011           # declare statment for "version"
-1001           # small size and string declare
-00000111       # 7 characters in "version"
+1000           # sttt: small size and string declare
+0111           # 7 characters in "version"
 'v'
 ...
 'n'
 
-1011           # declare statment for "alpha"
-1001           # small size and string declare
-00000101       # 5 characters in "alpha"
+1000           # sttt: small size and string declare
+0101           # 5 characters in "alpha"
 'a'
 ...
 'a'
+```
 
-1010           # use statement
+The contents for `0.st`:
+```
+1001           # cccc: use statement
 1111_11111111  # no type
 11111111       # no IOs (end of IDs value)
-00011_0_1_01   # input with ptr 3 to constant buffer (tool)
-00010_0_1_01   # input with ptr 2 to constant buffer (some_harcoded_url)
-00001_0_1_01   # input with ptr 1 to constant buffer (version)
-00000_0_1_01   # input with ptr 0 to constant buffer (alpha)
+00000_00_0     # input with ptr 3 to constant buffer (tool)
+00001_10_0     # input with ptr 2 to constant buffer (some_harcoded_url)
+00010_00_0     # input with ptr 1 to constant buffer (version)
+00011_10_0     # input with ptr 0 to constant buffer (alpha)
 11111111       # no more attributes
 ```
 
 In the previous example, there are 16 bytes in control and 33 bytes to store
 the strings. 
+
+
+
+## Compilation
+
+HIF has a dual cmake and a bazel build setup to make it easy to use as a library.
+
+### optional abseil
+
+If your system has abseil, the library can go faster using the flat_hash_map.
+To enable use the -DUSE_ABSL_MAP=1
+
 
 
 

@@ -5,7 +5,6 @@ cc_test(
     srcs = ["hif_test.cpp"],
     deps = [
       "//hif",
-      "@fmt",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -15,7 +14,6 @@ cc_binary(
     srcs = ["hif_bench.cpp"],
     deps = [
       "//hif",
-      "@fmt",
         "@com_google_benchmark//:benchmark",
     ],
 )
@@ -25,6 +23,5 @@ cc_binary(
     srcs = ["hif_cat.cpp"],
     deps = [
       "//hif",
-      "@fmt",
     ],
 )

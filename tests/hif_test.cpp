@@ -2,10 +2,10 @@
 
 #include <string>
 
-#include "fmt/format.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "hif/hif_read.hpp"
+#include "hif/hif_write.hpp"
 
 class Hif_test : public ::testing::Test {
 protected:
@@ -17,35 +17,35 @@ protected:
 };
 
 TEST_F(Hif_test, Trivial_test1) {
-  // instantiate IMLI, some configuration and test the basic API so that it it
-  // learns. It is also a way to showcase the API
+  std::string fname("hif_test_data1");
 
-  std::string test{
-      "{conf:::tool=some_verilog_tool,version= 3.some_string.1\n"
-      "=::: file=submodule.v,loc=2\n"
-      "{module:inner:\\a,\\h:\\z,\\y,order=a;b;c;d\n"
-      "+and::\a=Z:A=\\y,B=\\z,loc=3\n"
-      "=:::loc=4\n"
-      "+and::\\tmp=Z:A=\\y,B=\\z\n"
-      "+not::\\h:\\tmp\n"
-      "}loc=5\n"
-      "{module:submodule:\\c,\\d:\\a,\\b,loc=7\n"
-      "+inner:foo:\\d=h,\\y=a:z=\\b,y=\\b,loc=8\n"
-      "}loc=9\n"
-      "+comment:::col=0,txt= some comment\\, and another,loc=a\n"
-      "}\n"};
+  auto wr = Hif_write::create(fname);
+  EXPECT_NE(wr, nullptr);
 
-  auto h = Hif_read::input(test);
-  h.dump();
+  auto stmt = Hif_write::create_assign();
 
-  h.each([](const Hif_read::Statement &stmt) {
-    std::cout << "type:" << stmt.type << "\n";
-    std::cout << "id:" << stmt.id << "\n";
-    for (const auto &e : stmt.io) {
-      std::cout << "  out.lhs:" << e.lhs << ":" << e.lhs_cat << "\n";
-      std::cout << "  out.rhs:" << e.rhs << ":" << e.lhs_cat << "\n";
-    }
+  stmt.instance = "jojojo";
+  stmt.add_input_string("A", "0");
+  stmt.add_input_string("A", "1");
+  stmt.add_input_string("A", "2");
+  stmt.add_input_string("A", "3");
+
+  stmt.add_output("Z");
+
+  stmt.add_attr_string("loc", "3");
+
+  wr->add(stmt);
+
+  wr = nullptr;  // close
+
+  auto rd = Hif_read::open(fname);
+  EXPECT_NE(rd, nullptr);
+
+  int conta = 0;
+  rd->each([&conta, &stmt](const Hif_base::Statement &stmt2) {
+    EXPECT_EQ(stmt, stmt2);
+    ++conta;
   });
 
-  EXPECT_NE(10, 100);
+  EXPECT_EQ(conta, 1);
 }

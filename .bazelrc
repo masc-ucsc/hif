@@ -1,1 +1,1 @@
-build --linkopt="-lstdc++"
+build --cxxopt="-std=c++17" --cxxopt="-fexceptions" --force_pic --build_tag_filters="-fixme"

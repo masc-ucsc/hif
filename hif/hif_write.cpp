@@ -2,6 +2,7 @@
 
 #include "hif_write.hpp"
 
+#include <dirent.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -11,126 +12,139 @@
 #include <cassert>
 #include <iostream>
 
-std::shared_ptr<Hif_write> Hif_write::open(const std::string &fname) {
-  int fd = ::open(fname.c_str(), O_RDWR | O_CREAT, 0644);
-  if (fd < 0) {
-    std::cerr << "Hif_write::open could not open filename:" << fname << "\n";
-    exit(3);
-  }
+std::shared_ptr<Hif_write> Hif_write::create(std::string_view fname) {
+  auto ptr = std::make_shared<Hif_write>(fname);
 
-  return std::make_shared<Hif_write>(fd);
+  return ptr->is_ok() ? ptr : nullptr;
 }
 
-Hif_write::Hif_write(int fd_) : fd(fd_) {
-  dvector.resize(8192);  // up to small ptr (13bits)
-  dvector_next = 0;
-}
+Hif_write::Hif_write(std::string_view fname) {
+  std::string sname(fname.data(), fname.size());
 
-int Hif_write::append_declare(Hif_base::ID_cat ttt, std::string_view txt) {
-  assert(txt.size());  // FIXME: no empty IDs (encoded with 8bits)
+  const char *path = sname.c_str();
 
-  size_t sz = txt.size();
-  if (sz >> 24) {
-    std::cerr << "Hif_write::append_declare txt size " << txt.size()
-              << "<< is too long\n";
-    exit(3);
-  }
+  DIR *dir = opendir(path);
+  if (dir) {  // directory exists
+    struct dirent *dirp;
 
-  bool small = sz <= 255;
-  if (small)
-    dvector[dvector_next].resize(2 + txt.size());
-  else
-    dvector[dvector_next].resize(4 + txt.size());
+    while ((dirp = readdir(dir)) != NULL) {
+      std::string_view sv(dirp->d_name, strlen(dirp->d_name));
+      if (sv == ".." || sv == ".")
+        continue;
+      if (sv == "0.st" || sv == "0.id")
+        continue;
 
-  uint8_t first_byte = Statement_class::Declare_class;
-  if (small)
-    first_byte |= 0x80;
-  first_byte |= static_cast<uint8_t>(ttt) << 4;
-
-  dvector[dvector_next][0] = first_byte;
-  dvector[dvector_next][1] = sz;  // lower 8 bits
-  if (!small) {
-    dvector[dvector_next][2] = sz >> 8;
-    dvector[dvector_next][3] = sz >> 16;
-    memcpy(dvector[dvector_next].data() + 4, txt.data(), txt.size());
-  } else {
-    memcpy(dvector[dvector_next].data() + 2, txt.data(), txt.size());
-  }
-
-  const auto it = declare2pos.find(cmp_declare_ptr(dvector[dvector_next]));
-  if (it != declare2pos.end())
-    return it->second;
-
-  auto insert_pos = dvector_next;
-
-  // WARNING: must be deleted because it is a pointer and it can be stale after
-  // rotating
-
-  auto it2 = declare2pos.find(cmp_declare_ptr(dvector[dvector_next]));
-  if (it2 != declare2pos.end()) {
-    declare2pos.erase(it2);
-  }
-  declare2pos[cmp_declare_ptr(dvector[dvector_next])] = insert_pos;
-
-  ++dvector_next;
-  if (dvector_next > dvector.size()) {  // Either grow the dvector or wrap around
-    if (dvector.size() > 8192) {
-      dvector_next = 0;
-      assert(dvector.size() == 20 * 1024 * 1024);
-    } else {
-      dvector.resize(20 * 1024 * 1024);
-    }
-  }
-
-  if (!dvector[dvector_next].empty()) {
-    auto it2 = declare2pos.find(cmp_declare_ptr(dvector[dvector_next]));
-    if (it2 != declare2pos.end()) {
-      if (it2->second == dvector_next) {
-        declare2pos.erase(it2);
+      bool unexpected_file = !std::isdigit(sv[0]) || sv.size() < 4;
+      if (!unexpected_file) {
+        auto end_sv     = sv.substr(sv.size() - 3);
+        unexpected_file = (end_sv != ".st" && end_sv != ".id");
       }
+
+      if (unexpected_file) {
+        std::cerr << "Hif_write::create directory " << fname << " has extra files like "
+                  << sv << " (aborting)\n";
+        return;
+      }
+
+      remove(dirp->d_name);
+    }
+    closedir(dir);
+  } else {
+    int fail = mkdir(path, 0755);
+    if (fail) {
+      std::cerr << "Hif_write::create could creater directory " << fname << "\n";
     }
   }
 
-  return insert_pos;
+  stbuff = File_write::create(sname + "/" + "0.st");
+  idbuff = File_write::create(sname + "/" + "0.id");
 }
 
-void Hif_write::append_entry(const Hif_base::Tuple_entry &ent) {}
+void Hif_write::write_idref(uint8_t ee, Hif_base::ID_cat ttt, std::string_view txt_) {
+#ifdef USE_ABSL_MAP
+  std::string_view txt = txt_;
+#else
+  std::string txt(txt_.data(), txt_.size());
+#endif
 
-void Hif_write::append(const Statement &stmt) {
-  assert(fd >= 0);
+  auto it = id2pos.find(txt);
 
-  assert(stmt.sclass != Statement_class::Declare_class);
-  assert((stmt.type >> 12) == 0);  // 12 bit type identifer (0xFFF is not used)
+  uint32_t pos;
+  if (it == id2pos.end()) {
+    pos             = id2pos.size();
+    id2pos[txt].pos = pos;
+    id2pos[txt].ttt = ttt;
 
-  assert(pre_buffer.empty());  // future may optimize less writes
-  assert(buffer.empty());      // future may optimize less writes
+    write_id(ttt, txt);
+  } else {
+    pos = it->second.pos;
+  }
 
-  buffer.push_back((stmt.type & 0xF) | ((stmt.sclass) << 4));
-  buffer.push_back(stmt.type >> 4);
+  uint32_t ref = (pos << 3) | (ee << 1);
+  if (pos < 32) {
+    stbuff->add8(ref | 1);  // small
+  } else {
+    stbuff->add24(ref);
+  }
+}
+
+void Hif_write::write_id(Hif_base::ID_cat ttt, std::string_view txt) {
+  uint16_t x = txt.size() << 4;
+  if (txt.size() < 16) {
+    idbuff->add8(x | ttt | 0x08);  // 0x8==small
+  } else {
+    idbuff->add8(x | ttt);
+    idbuff->add16(txt.size() >> 4);
+  }
+
+  idbuff->add(txt);
+}
+
+void Hif_write::add_io(const Hif_base::Tuple_entry &ent) {
+  if (!ent.lhs.empty()) {
+    uint8_t ee = ent.input ? 0 : 1;  // input or output port id
+    write_idref(ee, ent.lhs_cat, ent.lhs);
+  }
+  if (!ent.rhs.empty()) {
+    uint8_t ee = 2;  // value or net connected to port id
+    write_idref(ee, ent.rhs_cat, ent.rhs);
+  }
+}
+
+void Hif_write::add_attr(const Hif_base::Tuple_entry &ent) {
+  assert(!ent.lhs.empty());  // attr must have lhs AND rhs
+  assert(!ent.rhs.empty());  // attr must have lhs AND rhs
+
+  uint8_t lhs_ee = 0;  // attr left-hand-side
+  write_idref(lhs_ee, ent.lhs_cat, ent.lhs);
+
+  uint8_t rhs_ee = 2;  // right-hand-side
+  write_idref(rhs_ee, ent.rhs_cat, ent.rhs);
+}
+
+void Hif_write::add(const Statement &stmt) {
+  assert((stmt.type >> 12) == 0);  // max 12 bit type identifer
+
+  // worst case. Time to create new 0/1 id file
+  if ((2 * stmt.io.size() + 2 * stmt.attr.size() + id2pos.size()) > (1 << 20)) {
+    assert(false);  // FIXME: create new ID file
+  }
+
+  stbuff->add8((stmt.type & 0xF) | ((stmt.sclass) << 4));
+  stbuff->add8(stmt.type >> 4);
+
+  if (stmt.instance.empty()) {
+    stbuff->add8(0xFF);  // no instance identifier
+  }else{
+    write_idref(false, Hif_base::ID_cat::String_cat, stmt.instance);
+  }
+
   for (const auto &ent : stmt.io) {
-    append_entry(ent);
+    add_io(ent);
   }
-  buffer.push_back(0xFF);  // END OF IOs
+  stbuff->add8(0xFF);  // END OF IOs
   for (const auto &ent : stmt.attr) {
-    append_entry(ent);
+    add_attr(ent);
   }
-  buffer.push_back(0xFF);  // END OF ATTRs
-
-  if (!pre_buffer.empty()) {  // may add declare statments in pre-buffer
-    auto sz = ::write(fd, pre_buffer.data(), pre_buffer.size());
-    if (sz != pre_buffer.size()) {
-      std::cerr << "Hif_write::append could append, write error " << sz << "\n";
-      exit(3);
-    }
-    pre_buffer.clear();
-  }
-
-  auto sz = ::write(fd, buffer.data(), buffer.size());
-  if (sz != buffer.size()) {
-    std::cerr << "Hif_write::append could append, write error " << sz << "\n";
-    exit(3);
-  }
-  buffer.clear();
+  stbuff->add8(0xFF);  // END OF ATTRs
 }
-
-void Hif_write::dump() const { std::cout << "fd:" << fd << "\n"; }

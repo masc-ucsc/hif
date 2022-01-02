@@ -10,21 +10,30 @@
 class Hif_read : public Hif_base {
 public:
   // Load a file (fname) and populate the Hif
-  static Hif_read open(const std::string &fname);
+  static std::shared_ptr<Hif_read> open(std::string_view fname);
 
-  // Populate the Hif from the input string
-  static Hif_read input(std::string_view txt);
-  static Hif_read input(const std::string &txt) {
-    return input(std::string_view(txt.data(), txt.size()));
-  }
+  void each(const std::function<void(const Hif_base::Statement &stmt)>);
 
-  void each(const std::function<void(const Statement &stmt)>) const;
-
-  void dump() const;
+  Hif_read(std::string_view fname);
 
 protected:
-  Hif_read(int fd_, std::string_view base_);
+  bool is_ok() const { return !idflist.empty(); }
 
-  int              fd;
-  std::string_view base;
+  std::tuple<uint8_t *, uint32_t, int> open_file(const std::string &file);
+
+  void     read_idfile(const std::string &idfile);
+  uint8_t *read_te(uint8_t *ptr, uint8_t *ptr_end, std::vector<Tuple_entry> &io);
+  uint8_t *read_header(uint8_t *ptr, uint8_t *ptr_end, Hif_base::Statement &stmt);
+
+  std::vector<std::string> idflist;
+  std::vector<std::string> stflist;
+
+  size_t filepos;
+
+  struct id_entry {
+    Hif_base::ID_cat ttt;
+    std::string      txt;
+  };
+
+  std::vector<id_entry> pos2id;
 };

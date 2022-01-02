@@ -9,6 +9,7 @@ cc_library(
     hdrs = glob(["*.hpp"]),
     visibility = ["//visibility:public"],
     deps = [
+      "@com_google_absl//absl/container:flat_hash_map",
     ],
 )
 

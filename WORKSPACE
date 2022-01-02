@@ -31,12 +31,9 @@ git_repository(
     tag = "v2.2.2",
 )
 
+# optional library. Used only when -DUSE_ABSL_MAP set (faster)
 http_archive(
-    name = "fmt",
-    build_file = "BUILD.fmt",
-    sha256 = "fccfc86e4aff6c33bff9a1d907b2ba2de2a5a8ab84349be4964a93f8d8c21b62",
-    strip_prefix = "fmt-7bdf0628b1276379886c7f6dda2cef2b3b374f0b",
-    urls = [
-        "https://github.com/fmtlib/fmt/archive/7bdf0628b1276379886c7f6dda2cef2b3b374f0b.zip",
-    ],
+  name = "com_google_absl",
+  urls = ["https://github.com/abseil/abseil-cpp/archive/98eb410c93ad059f9bba1bf43f5bb916fc92a5ea.zip"],
+  strip_prefix = "abseil-cpp-98eb410c93ad059f9bba1bf43f5bb916fc92a5ea",
 )
