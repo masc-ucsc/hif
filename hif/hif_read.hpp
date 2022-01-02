@@ -4,6 +4,8 @@
 
 #include <cstdint>
 #include <tuple>
+#include <memory>
+#include <functional>
 
 #include "hif_base.hpp"
 

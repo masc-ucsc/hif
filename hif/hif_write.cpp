@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <cstring>
 #include <cassert>
 #include <iostream>
 

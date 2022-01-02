@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <string>
 #include <string_view>
+#include <memory>
+#include <vector>
 
 class File_write {
 public:

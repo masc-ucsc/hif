@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 #include <cassert>
+#include <cstring>
 #include <iostream>
 
 std::shared_ptr<Hif_read> Hif_read::open(std::string_view fname) {
@@ -204,16 +205,12 @@ uint8_t *Hif_read::read_te(uint8_t *ptr, uint8_t *ptr_end, std::vector<Tuple_ent
     uint8_t ee    = (*ptr >> 1) & 0x3;
 
     bool input;
-    bool portid;
     if (ee == 0) {  // input or attribute lhs
       input  = true;
-      portid = true;
     } else if (ee == 1) {  // output lhs
       input  = false;
-      portid = true;
     } else if (ee == 2) {  // rhs
       input  = true;
-      portid = false;
     } else {
       std::cerr << "Hif_read corrupted st ee " << *ptr << " (aborting)\n";
       return ptr_end;

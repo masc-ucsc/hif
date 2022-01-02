@@ -4,6 +4,8 @@
 
 #include <fcntl.h>
 #include <unistd.h>
+#include <cassert>
+#include <cstring>
 
 #include <iostream>
 
@@ -67,7 +69,7 @@ void File_write::add(std::string_view txt) {
     if (buffer_pos)
       drain();
 
-    auto sz = ::write(fd, txt.data(), txt.size());
+    size_t sz = ::write(fd, txt.data(), txt.size());
     if (sz != buffer_pos) {
       std::cerr << "File_write::add sv write error " << sz << "\n";
     }
@@ -88,7 +90,7 @@ void File_write::add(std::string_view txt) {
 void File_write::drain() {
   assert(buffer_pos);
 
-  auto sz = ::write(fd, buffer, buffer_pos);
+  size_t sz = ::write(fd, buffer, buffer_pos);
   if (sz != buffer_pos) {
     std::cerr << "File_write::destructor could not append, write error " << sz << "\n";
   }
