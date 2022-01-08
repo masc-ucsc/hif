@@ -12,26 +12,26 @@ void create_stmt() {
   auto stmt = Hif_write::create_assign();
 
   stmt.instance = "jojojo";
-  stmt.add_input_string("A", "0");
-  stmt.add_input_string("A", "1");
-  stmt.add_input_string("A", "2");
-  stmt.add_input_string("A", "3");
+  stmt.add_input("A", "0");
+  stmt.add_input("A", "1");
+  stmt.add_input("A", "2");
+  stmt.add_input("A", "3");
 
   stmt.add_output("Z");
 
-  stmt.add_attr_string("loc", "3");
+  stmt.add_attr("loc", "3");
 
   auto stmt2 = Hif_write::create_assign();
 
   stmt.instance = "jojojo";
-  stmt.add_input_string("A", "0");
-  stmt.add_input_string("A", "1");
-  stmt.add_input_string("A", "2");
-  stmt.add_input_string("A", "3");
+  stmt.add_input("A", "0");
+  stmt.add_input("A", "1");
+  stmt.add_input("A", "2");
+  stmt.add_input("A", "3");
 
   stmt.add_output("Z");
 
-  stmt.add_attr_string("loc", "different");
+  stmt.add_attr("loc", "different");
 
   benchmark::DoNotOptimize(!(stmt == stmt2));
 }
@@ -41,14 +41,14 @@ void hif_write_test_1() {
   auto stmt = Hif_write::create_assign();
 
   stmt.instance = "jojojo";
-  stmt.add_input_string("A", "0");
-  stmt.add_input_string("A", "1");
-  stmt.add_input_string("A", "2");
-  stmt.add_input_string("A", "3");
+  stmt.add_input("A", "0");
+  stmt.add_input("A", "1");
+  stmt.add_input("A", "2");
+  stmt.add_input("A", "3");
 
   stmt.add_output("Z");
 
-  stmt.add_attr_string("loc", "3");
+  stmt.add_attr("loc", "3");
 
   auto wr = Hif_write::create(std::string("hif_test_bench"));
 
@@ -62,14 +62,14 @@ void hif_write_test_1000() {
   auto stmt = Hif_write::create_assign();
 
   stmt.instance = "jojojo";
-  stmt.add_input_string("A", "0");
-  stmt.add_input_string("A", "1");
-  stmt.add_input_string("A", "2");
-  stmt.add_input_string("A", "3");
+  stmt.add_input("A", "0");
+  stmt.add_input("A", "1");
+  stmt.add_input("A", "2");
+  stmt.add_input("A", "3");
 
   stmt.add_output("Z");
 
-  stmt.add_attr_string("loc", "3");
+  stmt.add_attr("loc", "3");
 
   auto wr = Hif_write::create(std::string("hif_test_bench"));
 
@@ -85,14 +85,14 @@ void hif_rdwr_test_1000() {
   auto stmt = Hif_write::create_assign();
 
   stmt.instance = "jojojo";
-  stmt.add_input_string("A", "0");
-  stmt.add_input_string("A", "1");
-  stmt.add_input_string("A", "2");
-  stmt.add_input_string("A", "3");
+  stmt.add_input("A", "0");
+  stmt.add_input("A", "1");
+  stmt.add_input("A", "2");
+  stmt.add_input("A", "3");
 
   stmt.add_output("Z");
 
-  stmt.add_attr_string("loc", "3");
+  stmt.add_attr("loc", "3");
 
   auto wr = Hif_write::create(std::string("hif_test_bench"));
 

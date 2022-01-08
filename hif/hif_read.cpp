@@ -204,17 +204,8 @@ uint8_t *Hif_read::read_te(uint8_t *ptr, uint8_t *ptr_end, std::vector<Tuple_ent
     bool    small = (*ptr & 1) != 0;
     uint8_t ee    = (*ptr >> 1) & 0x3;
 
-    bool input;
-    if (ee == 0) {  // input or attribute lhs
-      input  = true;
-    } else if (ee == 1) {  // output lhs
-      input  = false;
-    } else if (ee == 2) {  // rhs
-      input  = true;
-    } else {
-      std::cerr << "Hif_read corrupted st ee " << *ptr << " (aborting)\n";
-      return ptr_end;
-    }
+    bool input = ee & 1;
+    bool last  = ee & 2;
 
     uint32_t pos = *ptr >> 3;
     if (small) {
@@ -231,23 +222,28 @@ uint8_t *Hif_read::read_te(uint8_t *ptr, uint8_t *ptr_end, std::vector<Tuple_ent
       return ptr_end;
     }
 
-    if (input) {
+    if (last) {
       if (lhs_pos >= 0) {
-        io.emplace_back(pos2id[lhs_pos].txt,
-                        pos2id[pos].txt,
-                        pos2id[lhs_pos].ttt,
-                        pos2id[pos].ttt);
+        io.emplace_back(input,
+            pos2id[lhs_pos].txt,
+            pos2id[pos].txt,
+            pos2id[lhs_pos].ttt,
+            pos2id[pos].ttt);
         lhs_pos = -1;
       } else {
-        lhs_pos = pos;
+        io.emplace_back(input,
+            pos2id[pos].txt,
+            "",
+            pos2id[pos].ttt,
+            ID_cat::String_cat
+            );
       }
-    } else {
-      if (lhs_pos >= 0) {
-        std::cerr << "Hif_read corrupted st lhs_pos " << lhs_pos
-                  << " withou rhs (aborting)\n";
+    }else{
+      if (lhs_pos>=0) {
+        std::cerr << "Hif_read corrupted 2 non last back to back?? (aborting)\n";
         return ptr_end;
       }
-      io.emplace_back(pos2id[pos].txt);
+      lhs_pos = pos;
     }
 
     if (ptr > ptr_end) {

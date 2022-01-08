@@ -102,12 +102,15 @@ void Hif_write::write_id(Hif_base::ID_cat ttt, std::string_view txt) {
 }
 
 void Hif_write::add_io(const Hif_base::Tuple_entry &ent) {
+  uint8_t ee = ent.input ? 1 : 0;  // input or output port id
+  if (ent.rhs.empty())
+    ee |= 0x2; // last in lhs/rhs sequence
+
   if (!ent.lhs.empty()) {
-    uint8_t ee = ent.input ? 0 : 1;  // input or output port id
     write_idref(ee, ent.lhs_cat, ent.lhs);
   }
   if (!ent.rhs.empty()) {
-    uint8_t ee = 2;  // value or net connected to port id
+    ee |= 0x2;
     write_idref(ee, ent.rhs_cat, ent.rhs);
   }
 }
@@ -116,10 +119,10 @@ void Hif_write::add_attr(const Hif_base::Tuple_entry &ent) {
   assert(!ent.lhs.empty());  // attr must have lhs AND rhs
   assert(!ent.rhs.empty());  // attr must have lhs AND rhs
 
-  uint8_t lhs_ee = 0;  // attr left-hand-side
+  uint8_t lhs_ee = 1;  // attr left-hand-side
   write_idref(lhs_ee, ent.lhs_cat, ent.lhs);
 
-  uint8_t rhs_ee = 2;  // right-hand-side
+  uint8_t rhs_ee = 3;  // right-hand-side
   write_idref(rhs_ee, ent.rhs_cat, ent.rhs);
 }
 

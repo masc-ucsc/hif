@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include <string.h>
+
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -31,17 +33,30 @@ public:
     Use
   };
 
-  struct Tuple_entry {
-    // add input
-    Tuple_entry(std::string_view l, std::string_view r, ID_cat lc, ID_cat rc)
-        : input(true), lhs(l), rhs(r), lhs_cat(lc), rhs_cat(rc) {}
+  struct Common_base {
+    constexpr Common_base(const void *d, uint32_t s) : data(d), size(s) {}
+    const void    *data;
+    uint32_t size;
+    std::string_view to_sv() { return std::string_view(static_cast<const char *>(data),size); }
+    bool operator==(const Common_base &r) const {
+      return size == r.size && memcmp(data, r.data, size) == 0;
+    }
+  };
 
-    // add output
-    Tuple_entry(std::string_view l)
-        : input(false)
-        , lhs(l)
-        , lhs_cat(ID_cat::String_cat)
-        , rhs_cat(ID_cat::String_cat) {}
+  struct String : public Common_base {
+  };
+  struct Base2 : public Common_base {
+    Base2(const int64_t *r, uint32_t sz=sizeof(int64_t))
+       :Common_base(static_cast<const void *>(r) , sz) {}
+  };
+  struct Base4 : public Common_base {
+  };
+  struct Custom : public Common_base {
+  };
+
+  struct Tuple_entry {
+    Tuple_entry(bool i, std::string_view l, std::string_view r, ID_cat lc, ID_cat rc)
+        : input(i), lhs(l), rhs(r), lhs_cat(lc), rhs_cat(rc) {}
 
     bool             input;
     std::string_view lhs;
@@ -68,32 +83,97 @@ public:
     Statement() : sclass(Statement_class::Node), type(0) {}
     Statement(Statement_class c) : sclass(c), type(0) {}
 
-    void add_input_string(std::string_view lhs, std::string_view rhs) {
-      io.emplace_back(lhs, rhs, ID_cat::String_cat, ID_cat::String_cat);
+    void add_input(std::string_view l) {
+      io.emplace_back(true, l, "", ID_cat::String_cat, ID_cat::String_cat);
     }
-    void add_input_base2(std::string_view lhs, std::string_view rhs) {
-      io.emplace_back(lhs, rhs, ID_cat::String_cat, ID_cat::Base2_cat);
+    void add_input(std::string_view l, std::string_view r) {
+      io.emplace_back(true, l, r, ID_cat::String_cat, ID_cat::String_cat);
     }
-    void add_input_base4(std::string_view lhs, std::string_view rhs) {
-      io.emplace_back(lhs, rhs, ID_cat::String_cat, ID_cat::Base4_cat);
+    void add_input(String l, String r) {
+      io.emplace_back(true, l.to_sv(), r.to_sv(), ID_cat::String_cat, ID_cat::String_cat);
     }
-    void add_input_custom(std::string_view lhs, std::string_view rhs) {
-      io.emplace_back(lhs, rhs, ID_cat::String_cat, ID_cat::Custom_cat);
+    void add_input(String l, Base2 r) {
+      io.emplace_back(true, l.to_sv(), r.to_sv(), ID_cat::String_cat, ID_cat::Base2_cat);
+    }
+    void add_input(String l, Base4 r) {
+      io.emplace_back(true, l.to_sv(), r.to_sv(), ID_cat::String_cat, ID_cat::Base4_cat);
+    }
+    void add_input(String l, Custom r) {
+      io.emplace_back(true, l.to_sv(), r.to_sv(), ID_cat::String_cat, ID_cat::Custom_cat);
+    }
+    void add_input(Base2 l, String r) {
+      io.emplace_back(true, l.to_sv(), r.to_sv(), ID_cat::Base2_cat, ID_cat::String_cat);
+    }
+    void add_input(Base2 l, Base2 r) {
+      io.emplace_back(true, l.to_sv(), r.to_sv(), ID_cat::Base2_cat, ID_cat::Base2_cat);
+    }
+    void add_input(Base2 l, Base4 r) {
+      io.emplace_back(true, l.to_sv(), r.to_sv(), ID_cat::Base2_cat, ID_cat::Base4_cat);
+    }
+    void add_input(Base2 l, Custom r) {
+      io.emplace_back(true, l.to_sv(), r.to_sv(), ID_cat::Base2_cat, ID_cat::Custom_cat);
     }
 
-    void add_output(std::string_view lhs) { io.emplace_back(lhs); }
+    void add_output(std::string_view l) {
+      io.emplace_back(false, l, "", ID_cat::String_cat, ID_cat::String_cat);
+    }
+    void add_output(String l) {
+      io.emplace_back(false, l.to_sv(), "", ID_cat::String_cat, ID_cat::String_cat);
+    }
+    void add_output(String l, String r) {
+      io.emplace_back(false, l.to_sv(), r.to_sv(), ID_cat::String_cat, ID_cat::String_cat);
+    }
+    void add_output(String l, Base2 r) {
+      io.emplace_back(false, l.to_sv(), r.to_sv(), ID_cat::String_cat, ID_cat::Base2_cat);
+    }
+    void add_output(String l, Base4 r) {
+      io.emplace_back(false, l.to_sv(), r.to_sv(), ID_cat::String_cat, ID_cat::Base4_cat);
+    }
+    void add_output(String l, Custom r) {
+      io.emplace_back(false, l.to_sv(), r.to_sv(), ID_cat::String_cat, ID_cat::Custom_cat);
+    }
+    void add_output(Base2 l, String r) {
+      io.emplace_back(false, l.to_sv(), r.to_sv(), ID_cat::Base2_cat, ID_cat::String_cat);
+    }
+    void add_output(Base2 l, Base2 r) {
+      io.emplace_back(false, l.to_sv(), r.to_sv(), ID_cat::Base2_cat, ID_cat::Base2_cat);
+    }
+    void add_output(Base2 l, Base4 r) {
+      io.emplace_back(false, l.to_sv(), r.to_sv(), ID_cat::Base2_cat, ID_cat::Base4_cat);
+    }
+    void add_output(Base2 l, Custom r) {
+      io.emplace_back(false, l.to_sv(), r.to_sv(), ID_cat::Base2_cat, ID_cat::Custom_cat);
+    }
 
-    void add_attr_string(std::string_view lhs, std::string_view rhs) {
-      attr.emplace_back(lhs, rhs, ID_cat::String_cat, ID_cat::String_cat);
+    void add_attr(std::string_view l) {
+      attr.emplace_back(true, l, "", ID_cat::String_cat, ID_cat::String_cat);
     }
-    void add_attr_base2(std::string_view lhs, std::string_view rhs) {
-      attr.emplace_back(lhs, rhs, ID_cat::String_cat, ID_cat::Base2_cat);
+    void add_attr(std::string_view l, std::string_view r) {
+      attr.emplace_back(true, l, r, ID_cat::String_cat, ID_cat::String_cat);
     }
-    void add_attr_base4(std::string_view lhs, std::string_view rhs) {
-      attr.emplace_back(lhs, rhs, ID_cat::String_cat, ID_cat::Base4_cat);
+    void add_attr(String l, String r) {
+      attr.emplace_back(true, l.to_sv(), r.to_sv(), ID_cat::String_cat, ID_cat::String_cat);
     }
-    void add_attr_custom(std::string_view lhs, std::string_view rhs) {
-      attr.emplace_back(lhs, rhs, ID_cat::String_cat, ID_cat::Custom_cat);
+    void add_attr(String l, Base2 r) {
+      attr.emplace_back(true, l.to_sv(), r.to_sv(), ID_cat::String_cat, ID_cat::Base2_cat);
+    }
+    void add_attr(String l, Base4 r) {
+      attr.emplace_back(true, l.to_sv(), r.to_sv(), ID_cat::String_cat, ID_cat::Base4_cat);
+    }
+    void add_attr(String l, Custom r) {
+      attr.emplace_back(true, l.to_sv(), r.to_sv(), ID_cat::String_cat, ID_cat::Custom_cat);
+    }
+    void add_attr(Base2 l, String r) {
+      attr.emplace_back(true, l.to_sv(), r.to_sv(), ID_cat::Base2_cat, ID_cat::String_cat);
+    }
+    void add_attr(Base2 l, Base2 r) {
+      attr.emplace_back(true, l.to_sv(), r.to_sv(), ID_cat::Base2_cat, ID_cat::Base2_cat);
+    }
+    void add_attr(Base2 l, Base4 r) {
+      attr.emplace_back(true, l.to_sv(), r.to_sv(), ID_cat::Base2_cat, ID_cat::Base4_cat);
+    }
+    void add_attr(Base2 l, Custom r) {
+      attr.emplace_back(true, l.to_sv(), r.to_sv(), ID_cat::Base2_cat, ID_cat::Custom_cat);
     }
 
     bool operator==(const Statement &rhs) const {

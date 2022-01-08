@@ -25,14 +25,14 @@ TEST_F(Hif_test, Trivial_test1) {
   auto stmt = Hif_write::create_assign();
 
   stmt.instance = "jojojo";
-  stmt.add_input_string("A", "0");
-  stmt.add_input_string("A", "1");
-  stmt.add_input_string("A", "2");
-  stmt.add_input_string("A", "3");
+  stmt.add_input("A", "0");
+  stmt.add_input("A", "1");
+  stmt.add_input("A", "2");
+  stmt.add_input("A", "3");
 
   stmt.add_output("Z");
 
-  stmt.add_attr_string("loc", "3");
+  stmt.add_attr("loc", "3");
 
   wr->add(stmt);
 
