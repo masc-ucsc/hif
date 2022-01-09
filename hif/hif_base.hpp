@@ -59,8 +59,8 @@ public:
         : input(i), lhs(l), rhs(r), lhs_cat(lc), rhs_cat(rc) {}
 
     bool             input;
-    std::string_view lhs;
-    std::string_view rhs;
+    std::string      lhs;
+    std::string      rhs;
     ID_cat           lhs_cat;  // Either String or Net (net in output, string in input)
     ID_cat           rhs_cat;
 
@@ -75,7 +75,7 @@ public:
 
     uint16_t type;  // 12 bit type
 
-    std::string_view instance;
+    std::string      instance;
 
     std::vector<Tuple_entry> io;
     std::vector<Tuple_entry> attr;
@@ -199,5 +199,6 @@ public:
   static Statement create_use()         { return Statement(Statement_class::Use); }
 
 protected:
+
   Hif_base() {}
 };

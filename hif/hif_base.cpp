@@ -60,3 +60,4 @@ void Hif_base::Statement::dump() const {
   print_te("  io  ", io);
   print_te("  attr", attr);
 }
+

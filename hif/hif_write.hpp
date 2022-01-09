@@ -30,6 +30,7 @@ public:
   Hif_write(std::string_view sname);
 
 protected:
+
   bool is_ok() const { return stbuff != nullptr; }
 
   // add_* adds data structure and likely to fbuff too

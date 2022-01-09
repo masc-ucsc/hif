@@ -152,3 +152,4 @@ void Hif_write::add(const Statement &stmt) {
   }
   stbuff->add8(0xFF);  // END OF ATTRs
 }
+
