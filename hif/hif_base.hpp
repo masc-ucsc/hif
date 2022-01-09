@@ -117,6 +117,9 @@ public:
     void add_output(std::string_view l) {
       io.emplace_back(false, l, "", ID_cat::String_cat, ID_cat::String_cat);
     }
+    void add_output(std::string_view l, std::string_view r) {
+      io.emplace_back(false, l, r, ID_cat::String_cat, ID_cat::String_cat);
+    }
     void add_output(String l) {
       io.emplace_back(false, l.to_sv(), "", ID_cat::String_cat, ID_cat::String_cat);
     }
