@@ -6,6 +6,9 @@
 
 void Hif_base::Statement::print_te(const std::string                       &start,
                                    const std::vector<Hif_base::Tuple_entry> io) const {
+  if (io.empty())
+    return;
+
   std::cout << start;
 
   for (const auto &io : io) {
@@ -34,7 +37,25 @@ void Hif_base::Statement::print_te(const std::string                       &star
 }
 
 void Hif_base::Statement::dump() const {
-  std::cout << "statement " << instance << " class " << sclass << "type " << type << "\n";
+  static const char *class2name[] = {
+    "node",
+    "assing",
+    "attr",
+    "open_call",
+    "close_call",
+    "open_def",
+    "close_def",
+    "end",
+    "use"
+  };
+
+  std::cout << class2name[sclass];
+
+  if (!instance.empty()) {
+    std::cout << " " << instance;
+  }
+
+  std::cout << " type " << type << "\n";
 
   print_te("  io  ", io);
   print_te("  attr", attr);
