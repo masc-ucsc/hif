@@ -49,3 +49,38 @@ TEST_F(Hif_test, Trivial_test1) {
 
   EXPECT_EQ(conta, 1);
 }
+
+TEST_F(Hif_test, Large_stmt) {
+
+  std::string fname("hif_test_data2");
+
+  auto wr = Hif_write::create(fname);
+  EXPECT_NE(wr, nullptr);
+
+  auto stmt = Hif_write::create_assign();
+
+  stmt.instance = "jojojo";
+
+  for(auto i=0u;i<1024;++i) {
+    stmt.add_input(std::to_string(i), std::string("a_longer_string_") + std::to_string(i));
+  }
+  for(auto i=0u;i<1024;++i) {
+    stmt.add_output(std::to_string(i) + "_out", std::string("a_longer_string_") + std::to_string(i));
+  }
+
+  wr->add(stmt);
+
+  wr = nullptr;  // close
+
+  auto rd = Hif_read::open(fname);
+  EXPECT_NE(rd, nullptr);
+
+  int conta = 0;
+  rd->each([&conta, &stmt](const Hif_base::Statement &stmt2) {
+    EXPECT_EQ(stmt, stmt2);
+    ++conta;
+  });
+
+  EXPECT_EQ(conta, 1);
+}
+

@@ -85,7 +85,8 @@ void Hif_write::write_idref(uint8_t ee, Hif_base::ID_cat ttt, std::string_view t
   if (pos < 32) {
     stbuff->add8(ref | 1);  // small
   } else {
-    stbuff->add24(ref);
+    stbuff->add8(ref);
+    stbuff->add16(ref>>8);
   }
 }
 
@@ -103,10 +104,10 @@ void Hif_write::write_id(Hif_base::ID_cat ttt, std::string_view txt) {
 
 void Hif_write::add_io(const Hif_base::Tuple_entry &ent) {
   uint8_t ee = ent.input ? 1 : 0;  // input or output port id
-  if (ent.rhs.empty())
-    ee |= 0x2; // last in lhs/rhs sequence
 
   if (!ent.lhs.empty()) {
+    if (ent.rhs.empty())
+      ee |= 0x2; // last in lhs/rhs sequence
     write_idref(ee, ent.lhs_cat, ent.lhs);
   }
   if (!ent.rhs.empty()) {
@@ -140,7 +141,7 @@ void Hif_write::add(const Statement &stmt) {
   if (stmt.instance.empty()) {
     stbuff->add8(0xFF);  // no instance identifier
   }else{
-    write_idref(false, Hif_base::ID_cat::String_cat, stmt.instance);
+    write_idref(0x3, Hif_base::ID_cat::String_cat, stmt.instance);
   }
 
   for (const auto &ent : stmt.io) {

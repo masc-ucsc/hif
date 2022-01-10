@@ -12,6 +12,7 @@
 #include <cassert>
 #include <cstring>
 #include <iostream>
+#include <iterator>
 
 std::shared_ptr<Hif_read> Hif_read::open(std::string_view fname) {
   auto ptr = std::make_shared<Hif_read>(fname);
@@ -207,12 +208,12 @@ uint8_t *Hif_read::read_te(uint8_t *ptr, uint8_t *ptr_end, std::vector<Tuple_ent
     bool input = ee & 1;
     bool last  = ee & 2;
 
-    uint32_t pos = *ptr >> 3;
+    uint32_t pos = *ptr >> 3; // 3 == ee + small bit
     if (small) {
       ptr += 1;
     } else {
       uint32_t pos2 = *(uint16_t *)(ptr + 1);
-      pos2 <<= 4;
+      pos2 <<= (8-3);         // 3 bits used for small + ee
       pos |= pos2;
       ptr += 3;
     }
@@ -250,12 +251,14 @@ uint8_t *Hif_read::read_te(uint8_t *ptr, uint8_t *ptr_end, std::vector<Tuple_ent
       std::cerr << "Hif_read corrupted st overflow (aborting)\n";
       return ptr_end;
     }
-  }
 
-  if (lhs_pos >= 0) {
-    std::cerr << "Hif_read corrupted st lhs_pos " << lhs_pos
-              << " withou rhs (aborting)\n";
-    return ptr_end;
+    if (*ptr == 0xFF && lhs_pos >= 0) {
+      std::cerr << "Hif_read corrupted lhs_pos " << lhs_pos
+                << " input " << input
+                << " last " << last
+                << " without rhs (aborting)\n";
+      return ptr_end;
+    }
   }
 
   ptr += 1;
