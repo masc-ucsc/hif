@@ -89,6 +89,11 @@ public:
     void add_input(std::string_view l, std::string_view r) {
       io.emplace_back(true, l, r, ID_cat::String_cat, ID_cat::String_cat);
     }
+    void add_input(std::string_view l, const int64_t &v) {
+      std::string_view v_sv(reinterpret_cast<const char *>(&v), sizeof(int64_t));
+
+      io.emplace_back(true, l, v_sv,  ID_cat::String_cat, ID_cat::Base2_cat);
+    }
     void add_input(String l, String r) {
       io.emplace_back(true, l.to_sv(), r.to_sv(), ID_cat::String_cat, ID_cat::String_cat);
     }
@@ -120,6 +125,11 @@ public:
     void add_output(std::string_view l, std::string_view r) {
       io.emplace_back(false, l, r, ID_cat::String_cat, ID_cat::String_cat);
     }
+    void add_output(std::string_view l, const int64_t &v) {
+      std::string_view v_sv(reinterpret_cast<const char *>(&v), sizeof(int64_t));
+
+      io.emplace_back(false, l, v_sv,  ID_cat::String_cat, ID_cat::Base2_cat);
+    }
     void add_output(String l) {
       io.emplace_back(false, l.to_sv(), "", ID_cat::String_cat, ID_cat::String_cat);
     }
@@ -150,6 +160,11 @@ public:
 
     void add_attr(std::string_view l) {
       attr.emplace_back(true, l, "", ID_cat::String_cat, ID_cat::String_cat);
+    }
+    void add_attr(std::string_view l, const int64_t &v) {
+      std::string_view v_sv(reinterpret_cast<const char *>(&v), sizeof(int64_t));
+
+      attr.emplace_back(true, l, v_sv,  ID_cat::String_cat, ID_cat::Base2_cat);
     }
     void add_attr(std::string_view l, std::string_view r) {
       attr.emplace_back(true, l, r, ID_cat::String_cat, ID_cat::String_cat);
