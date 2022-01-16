@@ -13,13 +13,13 @@
 #include <cassert>
 #include <iostream>
 
-std::shared_ptr<Hif_write> Hif_write::create(std::string_view fname) {
-  auto ptr = std::make_shared<Hif_write>(fname);
+std::shared_ptr<Hif_write> Hif_write::create(std::string_view fname, std::string_view tool, std::string_view version) {
+  auto ptr = std::make_shared<Hif_write>(fname, tool, version);
 
   return ptr->is_ok() ? ptr : nullptr;
 }
 
-Hif_write::Hif_write(std::string_view fname) {
+Hif_write::Hif_write(std::string_view fname, std::string_view tool, std::string_view version) {
   std::string sname(fname.data(), fname.size());
 
   const char *path = sname.c_str();
@@ -59,6 +59,15 @@ Hif_write::Hif_write(std::string_view fname) {
 
   stbuff = File_write::create(sname + "/" + "0.st");
   idbuff = File_write::create(sname + "/" + "0.id");
+
+  {
+    auto conf_stmt = Hif_write::create_attr();
+    conf_stmt.add_attr("HIF",hif_version);
+    conf_stmt.add_attr("tool", tool);
+    conf_stmt.add_attr("version",version);
+
+    add(conf_stmt);
+  }
 }
 
 void Hif_write::write_idref(uint8_t ee, Hif_base::ID_cat ttt, std::string_view txt_) {

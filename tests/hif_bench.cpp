@@ -50,7 +50,7 @@ void hif_write_test_1() {
 
   stmt.add_attr("loc", "3");
 
-  auto wr = Hif_write::create(std::string("hif_test_bench"));
+  auto wr = Hif_write::create(std::string("hif_test_bench"), "hif_bench", "0.xxx");
 
   wr->add(stmt);
 
@@ -71,7 +71,7 @@ void hif_write_test_1000() {
 
   stmt.add_attr("loc", "3");
 
-  auto wr = Hif_write::create(std::string("hif_test_bench"));
+  auto wr = Hif_write::create(std::string("hif_test_bench"), "hif_bench", "0.xxx");
 
   for(auto i=0u;i<1000;++i) {
     wr->add(stmt);
@@ -94,7 +94,7 @@ void hif_rdwr_test_1000() {
 
   stmt.add_attr("loc", "3");
 
-  auto wr = Hif_write::create(std::string("hif_test_bench"));
+  auto wr = Hif_write::create(std::string("hif_test_bench"), "hif_bench", "0.xxx");
 
   for(auto i=0u;i<1000;++i) {
     wr->add(stmt);

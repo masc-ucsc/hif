@@ -87,6 +87,48 @@ Hif_read::Hif_read(std::string_view fname) {
   }
 
   filepos = 0;
+
+  read_idfile(idflist[0]);
+
+  std::tie(ptr_base, ptr_size, ptr_fd) = open_file(stflist[0]);
+  if (ptr_base == nullptr) {
+    corrupted = true;
+    return;
+  }
+
+  ptr     = ptr_base;
+  ptr_end = ptr_base + ptr_size;
+
+  Statement stmt;
+
+  ptr = read_header(ptr, ptr_end, stmt);
+  ptr = read_te(ptr, ptr_end, stmt.io);
+  ptr = read_te(ptr, ptr_end, stmt.attr);
+
+  if (stmt.attr.size()!=3) {
+    munmap(ptr_base, ptr_size);
+    close(ptr_fd);
+    std::cerr << "Hif_read invalid HIF header " << fname << "\n";
+    stmt.dump();
+    corrupted = true;
+    return;
+  }
+
+  if (stmt.attr[0].lhs != "HIF" || stmt.attr[0].rhs != hif_version) {
+    std::cerr << "Hif_read unsupported HIF version " << fname << "\n";
+    stmt.dump();
+    corrupted = true;
+    return;
+  }
+  if (stmt.attr[1].lhs != "tool" || stmt.attr[2].lhs != "version") {
+    std::cerr << "Hif_read missing tool/version attributes " << fname << "\n";
+    stmt.dump();
+    corrupted = true;
+    return;
+  }
+
+  tool    = stmt.attr[1].rhs;
+  version = stmt.attr[2].rhs;
 }
 
 std::tuple<uint8_t *, uint32_t, int> Hif_read::open_file(const std::string &file) {
@@ -310,12 +352,8 @@ uint8_t *Hif_read::read_header(uint8_t *ptr, uint8_t *ptr_end, Statement &stmt) 
 }
 
 void Hif_read::each(const std::function<void(const Statement &stmt)> fn) {
-  read_idfile(idflist[0]);
-
-  auto [ptr, ptr_size, fd] = open_file(stflist[0]);
-
-  uint8_t *ptr_base = ptr;
-  uint8_t *ptr_end  = ptr + ptr_size;
+  assert(ptr_base);
+  assert(ptr_fd>=0);
 
   while (ptr < ptr_end) {
     Statement stmt;
@@ -328,5 +366,5 @@ void Hif_read::each(const std::function<void(const Statement &stmt)> fn) {
   }
 
   munmap(ptr_base, ptr_size);
-  close(fd);
+  close(ptr_fd);
 }

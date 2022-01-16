@@ -22,6 +22,9 @@ int main(int argc, char **argv) {
     exit(-3);
   }
 
+  std::cout << "HIF version:" << hif_version;
+  std::cout << " tool:" << rd->get_tool() << " version:" << rd->get_version() << "\n";
+
   bool first=false;
   rd->each([&first](const Hif_base::Statement &stmt) {
     if (first && stmt.sclass != Hif_base::Statement_class::Attr) {

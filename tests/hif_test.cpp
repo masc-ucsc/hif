@@ -19,7 +19,7 @@ protected:
 TEST_F(Hif_test, Trivial_test1) {
   std::string fname("hif_test_data1");
 
-  auto wr = Hif_write::create(fname);
+  auto wr = Hif_write::create(fname, "testtool", "0.2.1");
   EXPECT_NE(wr, nullptr);
 
   auto stmt = Hif_write::create_assign();
@@ -41,6 +41,9 @@ TEST_F(Hif_test, Trivial_test1) {
   auto rd = Hif_read::open(fname);
   EXPECT_NE(rd, nullptr);
 
+  EXPECT_EQ(rd->get_tool(), "testtool");
+  EXPECT_EQ(rd->get_version(), "0.2.1");
+
   int conta = 0;
   rd->each([&conta, &stmt](const Hif_base::Statement &stmt2) {
     EXPECT_EQ(stmt, stmt2);
@@ -54,7 +57,7 @@ TEST_F(Hif_test, Large_stmt) {
 
   std::string fname("hif_test_data2");
 
-  auto wr = Hif_write::create(fname);
+  auto wr = Hif_write::create(fname, "testtool", "0.0.3");
   EXPECT_NE(wr, nullptr);
 
   auto stmt = Hif_write::create_assign();

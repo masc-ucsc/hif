@@ -9,6 +9,8 @@
 #include <string_view>
 #include <vector>
 
+constexpr const char *hif_version="0.0.1";
+
 class Hif_base {
 public:
   // ID categories (ttt field)

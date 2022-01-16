@@ -18,6 +18,9 @@ public:
 
   Hif_read(std::string_view fname);
 
+  std::string_view get_tool() const { return tool; }
+  std::string_view get_version() const { return version; }
+
 protected:
   bool is_ok() const { return !idflist.empty(); }
 
@@ -36,6 +39,15 @@ protected:
     Hif_base::ID_cat ttt;
     std::string      txt;
   };
+
+  std::string tool;
+  std::string version;
+
+  uint8_t *ptr;
+  uint8_t *ptr_end;
+  uint8_t *ptr_base;
+  size_t   ptr_size;
+  int      ptr_fd;
 
   std::vector<id_entry> pos2id;
 };
