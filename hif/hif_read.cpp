@@ -84,6 +84,8 @@ Hif_read::Hif_read(std::string_view fname) {
       std::cerr << " " << e;
     }
     std::cerr << "\n";
+    idflist.clear();
+    return;
   }
 
   filepos = 0;
@@ -92,7 +94,7 @@ Hif_read::Hif_read(std::string_view fname) {
 
   std::tie(ptr_base, ptr_size, ptr_fd) = open_file(stflist[0]);
   if (ptr_base == nullptr) {
-    corrupted = true;
+    idflist.clear();
     return;
   }
 
@@ -110,20 +112,20 @@ Hif_read::Hif_read(std::string_view fname) {
     close(ptr_fd);
     std::cerr << "Hif_read invalid HIF header " << fname << "\n";
     stmt.dump();
-    corrupted = true;
+    idflist.clear();
     return;
   }
 
   if (stmt.attr[0].lhs != "HIF" || stmt.attr[0].rhs != hif_version) {
     std::cerr << "Hif_read unsupported HIF version " << fname << "\n";
     stmt.dump();
-    corrupted = true;
+    idflist.clear();
     return;
   }
   if (stmt.attr[1].lhs != "tool" || stmt.attr[2].lhs != "version") {
     std::cerr << "Hif_read missing tool/version attributes " << fname << "\n";
     stmt.dump();
-    corrupted = true;
+    idflist.clear();
     return;
   }
 
