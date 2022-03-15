@@ -185,6 +185,16 @@ public:
       return sclass == rhs.sclass && instance == rhs.instance && type == rhs.type && io == rhs.io && attr == rhs.attr;
     }
 
+    bool is_node()        { return sclass == Statement_class::Node; }
+    bool is_assign()      { return sclass == Statement_class::Assign; }
+    bool is_attr()        { return sclass == Statement_class::Attr; }
+    bool is_open_call()   { return sclass == Statement_class::Open_call; }
+    bool is_closed_call() { return sclass == Statement_class::Closed_call; }
+    bool is_open_def()    { return sclass == Statement_class::Open_def; }
+    bool is_closed_def()  { return sclass == Statement_class::Closed_def; }
+    bool is_end()         { return sclass == Statement_class::End; }
+    bool is_use()         { return sclass == Statement_class::Use; }
+
     void dump() const;
     void print_te(const std::string                       &start,
                   const std::vector<Hif_base::Tuple_entry> io) const;

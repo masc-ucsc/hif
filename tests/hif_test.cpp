@@ -87,3 +87,22 @@ TEST_F(Hif_test, Large_stmt) {
   EXPECT_EQ(conta, 1);
 }
 
+TEST_F(Hif_test, Statement_class_check) {
+  std::string fname("hif_test_statement_class_check");
+  
+  Hif_base::Statement stmt;
+
+  #define STMT_CLASS_CHECK(type)     \
+  stmt = Hif_write::create_##type(); \
+  EXPECT_TRUE(stmt.is_##type());
+  
+  STMT_CLASS_CHECK(node);
+  STMT_CLASS_CHECK(assign);
+  STMT_CLASS_CHECK(attr);
+  STMT_CLASS_CHECK(open_call);
+  STMT_CLASS_CHECK(closed_call);
+  STMT_CLASS_CHECK(open_def);
+  STMT_CLASS_CHECK(closed_def);
+  STMT_CLASS_CHECK(end);
+  STMT_CLASS_CHECK(use);
+}
