@@ -14,6 +14,8 @@ public:
   // Load a file (fname) and populate the Hif
   static std::shared_ptr<Hif_read> open(std::string_view fname);
 
+  bool next_stmt();
+  Hif_base::Statement get_current_stmt() { return cur_stmt; }
   void each(const std::function<void(const Hif_base::Statement &stmt)>);
 
   Hif_read(std::string_view fname);
@@ -25,7 +27,7 @@ protected:
   bool is_ok() const { return !idflist.empty(); }
 
   std::tuple<uint8_t *, uint32_t, int> open_file(const std::string &file);
-
+  
   void     read_idfile(const std::string &idfile);
   uint8_t *read_te(uint8_t *ptr, uint8_t *ptr_end, std::vector<Tuple_entry> &io);
   uint8_t *read_header(uint8_t *ptr, uint8_t *ptr_end, Hif_base::Statement &stmt);
@@ -34,6 +36,8 @@ protected:
   std::vector<std::string> stflist;
 
   size_t filepos;
+
+  Statement cur_stmt;
 
   struct id_entry {
     Hif_base::ID_cat ttt;

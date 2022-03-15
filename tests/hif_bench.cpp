@@ -111,6 +111,17 @@ void hif_rdwr_test_1000() {
   benchmark::DoNotOptimize(!(conta == 1000));
 }
 
+void hif_get_current_stmt() {
+  auto rd = Hif_read::open(std::string("hif_test_bench"));
+  assert(rd != nullptr);
+
+  auto conta = 0u;
+  while (rd->next_stmt()) {
+    auto stmt = rd->get_current_stmt();
+    conta += static_cast<int>(stmt.type);
+  }
+}
+
 static void BM_hif_stmt(benchmark::State& state) {
   // Perform setup here
   for (auto _ : state) {
@@ -143,10 +154,20 @@ static void BM_hif_rdwr_1000(benchmark::State& state) {
   }
 }
 
+static void BM_hif_get_current_stmt_1000(benchmark::State& state) {
+  // Perform setup here
+  hif_write_test_1000();
+  for (auto _ : state) {
+    // This code gets timed
+    hif_get_current_stmt();
+  }
+}
+
 BENCHMARK(BM_hif_stmt);
 BENCHMARK(BM_hif_write_1);
 BENCHMARK(BM_hif_write_1000);
 BENCHMARK(BM_hif_rdwr_1000);
+BENCHMARK(BM_hif_get_current_stmt_1000);
 
 // Run the benchmark
 BENCHMARK_MAIN();

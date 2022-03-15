@@ -353,18 +353,24 @@ uint8_t *Hif_read::read_header(uint8_t *ptr, uint8_t *ptr_end, Statement &stmt) 
   return ptr;
 }
 
+bool Hif_read::next_stmt() {
+  if (ptr >= ptr_end) return false;
+
+  cur_stmt = Statement();
+
+  ptr = read_header(ptr, ptr_end, cur_stmt);
+  ptr = read_te(ptr, ptr_end, cur_stmt.io);
+  ptr = read_te(ptr, ptr_end, cur_stmt.attr);
+  
+  return true;
+}
+
 void Hif_read::each(const std::function<void(const Statement &stmt)> fn) {
   assert(ptr_base);
   assert(ptr_fd>=0);
 
-  while (ptr < ptr_end) {
-    Statement stmt;
-
-    ptr = read_header(ptr, ptr_end, stmt);
-    ptr = read_te(ptr, ptr_end, stmt.io);
-    ptr = read_te(ptr, ptr_end, stmt.attr);
-
-    fn(stmt);
+  while (next_stmt()) {
+    fn(cur_stmt);
   }
 
   munmap(ptr_base, ptr_size);
