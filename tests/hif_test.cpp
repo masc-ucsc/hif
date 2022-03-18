@@ -106,3 +106,26 @@ TEST_F(Hif_test, Statement_class_check) {
   STMT_CLASS_CHECK(end);
   STMT_CLASS_CHECK(use);
 }
+
+TEST_F(Hif_test, empty_string) {
+  std::string fname = "hif_empty_string";
+
+  auto wr = Hif_write::create(fname, "lnast", "test");
+  EXPECT_NE(wr, nullptr);
+  auto stmt = Hif_write::create_attr();
+  stmt.add_attr("name", "");
+  wr->add(stmt);
+
+  wr = nullptr;
+
+  auto rd = Hif_read::open(fname);
+  EXPECT_NE(rd, nullptr);
+  rd->get_tool();
+  rd->get_version();
+  rd->next_stmt();
+  stmt = rd->get_current_stmt();
+  EXPECT_EQ(stmt.attr[0].lhs, "name");
+  EXPECT_EQ(stmt.attr[0].rhs, "");
+
+  rd = nullptr;
+}

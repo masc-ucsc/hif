@@ -127,7 +127,8 @@ void Hif_write::add_io(const Hif_base::Tuple_entry &ent) {
 
 void Hif_write::add_attr(const Hif_base::Tuple_entry &ent) {
   assert(!ent.lhs.empty());  // attr must have lhs AND rhs
-  assert(!ent.rhs.empty());  // attr must have lhs AND rhs
+  // NOTE: Empty stringS are valid
+  // assert(!ent.rhs.empty());  // attr must have lhs AND rhs
 
   uint8_t lhs_ee = 1;  // attr left-hand-side
   write_idref(lhs_ee, ent.lhs_cat, ent.lhs);
