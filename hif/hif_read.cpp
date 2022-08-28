@@ -133,6 +133,11 @@ Hif_read::Hif_read(std::string_view fname) {
   version = stmt.attr[2].rhs;
 }
 
+Hif_read::~Hif_read() {
+  munmap(ptr_base, ptr_size);
+  close(ptr_fd);
+}
+
 std::tuple<uint8_t *, uint32_t, int> Hif_read::open_file(const std::string &file) {
   int fd = ::open(file.c_str(), O_RDONLY, 0644);
   if (fd < 0) {

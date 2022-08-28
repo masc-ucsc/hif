@@ -19,6 +19,7 @@ public:
   void each(const std::function<void(const Hif_base::Statement &stmt)>);
 
   Hif_read(std::string_view fname);
+  ~Hif_read();
 
   std::string_view get_tool() const { return tool; }
   std::string_view get_version() const { return version; }
