@@ -7,7 +7,7 @@
 #include <tuple>
 #include <vector>
 
-//#define USE_ABSL_MAP 1
+#define USE_ABSL_MAP 1
 
 #ifdef USE_ABSL_MAP
 #include "absl/container/flat_hash_map.h"

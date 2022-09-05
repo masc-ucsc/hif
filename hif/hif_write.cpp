@@ -53,7 +53,7 @@ Hif_write::Hif_write(std::string_view fname, std::string_view tool, std::string_
   } else {
     int fail = mkdir(path, 0755);
     if (fail) {
-      std::cerr << "Hif_write::create could creater directory " << fname << "\n";
+      std::cerr << "Hif_write::create failed to create directory " << fname << "\n";
     }
   }
 

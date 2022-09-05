@@ -153,8 +153,11 @@ std::tuple<uint8_t *, uint32_t, int> Hif_read::open_file(const std::string &file
     return std::make_tuple(nullptr, 0, -1);
   }
 
-  uint8_t *ptr
-      = static_cast<uint8_t *>(mmap(0, sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0));
+  if (sb.st_size == 0) { // empty (likely corrupt from before)
+    return std::make_tuple(nullptr, 0, -1);
+  }
+
+  auto ptr = static_cast<uint8_t *>(mmap(0, sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0));
   if (ptr == MAP_FAILED) {
     std::cerr << "Hif_read could not allocate a mmap for filename:" << file << " with "
               << sb.st_size << " bytes\n";
