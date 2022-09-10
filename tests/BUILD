@@ -25,3 +25,11 @@ cc_binary(
       "//hif",
     ],
 )
+
+cc_binary(
+    name = "hif_rand_test",
+    srcs = ["hif_rand_test.cpp"],
+    deps = [
+      "//hif",
+    ],
+)
