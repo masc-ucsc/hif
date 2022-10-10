@@ -27,7 +27,6 @@ Hif_read::Hif_read(std::string_view fname) {
 
   DIR *dir = opendir(path);
   if (dir == nullptr) {
-    std::cerr << "Hif_read::open not valid HIF file " << fname << "\n";
     return;
   }
 
