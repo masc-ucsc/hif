@@ -16,7 +16,7 @@ git_repository(
 git_repository(
     name = "com_google_benchmark",
     remote = "https://github.com/google/benchmark.git",
-    tag = "v1.5.1",
+    tag = "v1.7.1",
 )
 
 #git_repository(
