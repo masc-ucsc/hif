@@ -21,10 +21,10 @@ std::string gen_str(const uint32_t len) {
   std::string str;
   str.reserve(len);
 
-  for (int i = 0; i < len; ++i) {
+  for (auto i = 0u; i < len; ++i) {
     str += ch_set[rand() % (sizeof(ch_set) - 1)];
   }
-  
+
   return str;
 }
 
@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
 
   using namespace std::chrono;
   high_resolution_clock::time_point t_start, t_end;
-  
+
   std::cout << "Generate random strings" << std::endl;
 
   std::vector<std::string> names;
@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
   }
 
   std::cout << "Starting test" << std::endl;
- 
+
   // Write Test
   t_start = high_resolution_clock::now();
 
@@ -72,13 +72,13 @@ int main(int argc, char *argv[]) {
 
   // Read Test
   t_start = high_resolution_clock::now();
-  
+
   uint64_t count = 0;
   auto reader = Hif_read::open("hif_rand_test");
   reader->each([&count] (const Hif_base::Statement &stmt) { count += stmt.io.size() + stmt.attr.size(); });
   std::cout << count << std::endl;
   reader = nullptr;
-  
+
   t_end = high_resolution_clock::now();
 
   time_span = duration_cast<duration<double>>(t_end - t_start);
