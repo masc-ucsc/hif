@@ -212,10 +212,6 @@ void Hif_read::read_idfile(const std::string &idfile) {
     pos2id[pos].ttt = static_cast<ID_cat>(ttt);
     pos2id[pos].txt = sv;
 
-    std::cerr << "id pos:" << pos
-      << " str:" << sv
-      << "\n";
-
     ptr += sz;
     pos += 1;
   }
@@ -264,15 +260,11 @@ uint8_t *Hif_read::read_te(uint8_t *ptr, uint8_t *ptr_end, std::vector<Tuple_ent
     bool last  = ee & 2;
 
     uint32_t pos = *ptr >> 3;  // 3 == ee + small bit
-    std::cerr << "read pos:" <<pos
-      << "ptr:" << (int)*ptr
-      << "\n";
-
     if (small) {
       ptr += 1;
     } else {
       uint32_t pos2 = *(uint16_t *)(ptr + 1);
-      pos2 <<= (8 - 3);  // 3 bits used for small + ee
+      pos2 <<= 5; // (8 - 3);  // 3 bits used for small + ee
       pos |= pos2;
       ptr += 3;
     }
@@ -346,7 +338,7 @@ uint8_t *Hif_read::read_header(uint8_t *ptr, uint8_t *ptr_end, Statement &stmt) 
       ptr += 1;
     } else {
       uint32_t pos2 = *(uint16_t *)(ptr + 1);
-      pos2 <<= 4;
+      pos2 <<= 5;
       pos |= pos2;
       ptr += 3;
     }
