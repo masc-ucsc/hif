@@ -94,8 +94,9 @@ void Hif_write::write_idref(uint8_t ee, Hif_base::ID_cat ttt, std::string_view t
   }
 
   uint32_t ref = (pos << 3) | (ee << 1);
+  uint8_t xx = ref;
   std::cerr << "write pos:" <<pos
-      << "ptr:" << (uint8_t)ref
+      << "ptr:" << (int)xx
       << "\n";
 
   if (pos < 31) {           // WARNING: if 31 is allowed it aliases with 0xFF end
