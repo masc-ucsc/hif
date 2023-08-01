@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 #include <cassert>
+#include <climits>
 #include <cstring>
 #include <iostream>
 #include <iterator>
@@ -210,6 +211,10 @@ void Hif_read::read_idfile(const std::string &idfile) {
 
     pos2id[pos].ttt = static_cast<ID_cat>(ttt);
     pos2id[pos].txt = sv;
+
+    std::cerr << "id pos:" << pos
+      << " str:" << sv
+      << "\n";
 
     ptr += sz;
     pos += 1;
