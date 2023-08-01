@@ -116,6 +116,7 @@ void hif_get_current_stmt() {
     auto stmt = rd->get_current_stmt();
     conta += static_cast<int>(stmt.type);
   }
+
   benchmark::DoNotOptimize(conta);
 }
 
