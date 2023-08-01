@@ -221,4 +221,44 @@ TEST_F(Hif_test, strings_match) {
     EXPECT_EQ(conta, inp_vector.size());
     EXPECT_EQ(conta, out_vector.size());
   }
+
+  {  // Same test but check different API
+    auto rd = Hif_read::open(fname);
+    EXPECT_NE(rd, nullptr);
+
+    rd->next_stmt();  // Skip verstion/tool
+
+    int conta = 0;
+    do {
+      auto stmt2 = rd->get_current_stmt();
+
+      if (conta & 1) {
+        EXPECT_TRUE(stmt2.is_assign());
+      } else {
+        EXPECT_TRUE(stmt2.is_node());
+      }
+
+      EXPECT_TRUE(stmt2.attr.empty());  // FIXME: add random attributes too
+      EXPECT_EQ(stmt2.io.size(), 2);
+
+      for (const auto &io : stmt2.io) {
+        EXPECT_TRUE(io.is_lhs_string());
+        EXPECT_TRUE(io.is_rhs_int64());
+
+        auto v = io.get_rhs_int64();
+        EXPECT_EQ(conta, v);
+
+        if (io.input) {
+          EXPECT_EQ(inp_vector[conta], io.lhs);
+        } else {
+          EXPECT_EQ(out_vector[conta], io.lhs);
+        }
+      }
+
+      ++conta;
+    } while (rd->next_stmt());
+
+    EXPECT_EQ(conta, inp_vector.size());
+    EXPECT_EQ(conta, out_vector.size());
+  }
 }
