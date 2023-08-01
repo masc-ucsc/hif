@@ -106,7 +106,7 @@ Hif_read::Hif_read(std::string_view fname) {
   ptr = read_te(ptr, ptr_end, stmt.io);
   ptr = read_te(ptr, ptr_end, stmt.attr);
 
-  if (stmt.attr.size()!=3) {
+  if (stmt.attr.size() != 3) {
     munmap(ptr_base, ptr_size);
     close(ptr_fd);
     std::cerr << "Hif_read invalid HIF header " << fname << "\n";
@@ -152,7 +152,7 @@ std::tuple<uint8_t *, uint32_t, int> Hif_read::open_file(const std::string &file
     return std::make_tuple(nullptr, 0, -1);
   }
 
-  if (sb.st_size == 0) { // empty (likely corrupt from before)
+  if (sb.st_size == 0) {  // empty (likely corrupt from before)
     return std::make_tuple(nullptr, 0, -1);
   }
 
@@ -248,7 +248,6 @@ size_t Hif_read::read_declare(size_t pos) {
 }
 #endif
 
-
 uint8_t *Hif_read::read_te(uint8_t *ptr, uint8_t *ptr_end, std::vector<Tuple_entry> &io) {
   int lhs_pos = -1;
 
@@ -259,12 +258,12 @@ uint8_t *Hif_read::read_te(uint8_t *ptr, uint8_t *ptr_end, std::vector<Tuple_ent
     bool input = ee & 1;
     bool last  = ee & 2;
 
-    uint32_t pos = *ptr >> 3; // 3 == ee + small bit
+    uint32_t pos = *ptr >> 3;  // 3 == ee + small bit
     if (small) {
       ptr += 1;
     } else {
       uint32_t pos2 = *(uint16_t *)(ptr + 1);
-      pos2 <<= (8-3);         // 3 bits used for small + ee
+      pos2 <<= (8 - 3);  // 3 bits used for small + ee
       pos |= pos2;
       ptr += 3;
     }
@@ -277,21 +276,16 @@ uint8_t *Hif_read::read_te(uint8_t *ptr, uint8_t *ptr_end, std::vector<Tuple_ent
     if (last) {
       if (lhs_pos >= 0) {
         io.emplace_back(input,
-            pos2id[lhs_pos].txt,
-            pos2id[pos].txt,
-            pos2id[lhs_pos].ttt,
-            pos2id[pos].ttt);
+                        pos2id[lhs_pos].txt,
+                        pos2id[pos].txt,
+                        pos2id[lhs_pos].ttt,
+                        pos2id[pos].ttt);
         lhs_pos = -1;
       } else {
-        io.emplace_back(input,
-            pos2id[pos].txt,
-            "",
-            pos2id[pos].ttt,
-            ID_cat::String_cat
-            );
+        io.emplace_back(input, pos2id[pos].txt, "", pos2id[pos].ttt, ID_cat::String_cat);
       }
-    }else{
-      if (lhs_pos>=0) {
+    } else {
+      if (lhs_pos >= 0) {
         std::cerr << "Hif_read corrupted 2 non last back to back?? (aborting)\n";
         return ptr_end;
       }
@@ -304,10 +298,8 @@ uint8_t *Hif_read::read_te(uint8_t *ptr, uint8_t *ptr_end, std::vector<Tuple_ent
     }
 
     if (*ptr == 0xFF && lhs_pos >= 0) {
-      std::cerr << "Hif_read corrupted lhs_pos " << lhs_pos
-                << " input " << input
-                << " last " << last
-                << " without rhs (aborting)\n";
+      std::cerr << "Hif_read corrupted lhs_pos " << lhs_pos << " input " << input
+                << " last " << last << " without rhs (aborting)\n";
       return ptr_end;
     }
   }
@@ -335,12 +327,11 @@ uint8_t *Hif_read::read_header(uint8_t *ptr, uint8_t *ptr_end, Statement &stmt) 
   }
   ptr += 2;
 
-  if (*ptr == 0xFF) { // no instance identifier
+  if (*ptr == 0xFF) {  // no instance identifier
     ptr += 1;
-  }else{
-
-    uint32_t pos = *ptr >> 3;
-    bool  small = (*ptr & 1) != 0;
+  } else {
+    uint32_t pos   = *ptr >> 3;
+    bool     small = (*ptr & 1) != 0;
     if (small) {
       ptr += 1;
     } else {
@@ -361,20 +352,21 @@ uint8_t *Hif_read::read_header(uint8_t *ptr, uint8_t *ptr_end, Statement &stmt) 
 }
 
 bool Hif_read::next_stmt() {
-  if (ptr >= ptr_end) return false;
+  if (ptr >= ptr_end)
+    return false;
 
   cur_stmt = Statement();
 
   ptr = read_header(ptr, ptr_end, cur_stmt);
   ptr = read_te(ptr, ptr_end, cur_stmt.io);
   ptr = read_te(ptr, ptr_end, cur_stmt.attr);
-  
+
   return true;
 }
 
 void Hif_read::each(const std::function<void(const Statement &stmt)> fn) {
   assert(ptr_base);
-  assert(ptr_fd>=0);
+  assert(ptr_fd >= 0);
 
   while (next_stmt()) {
     fn(cur_stmt);

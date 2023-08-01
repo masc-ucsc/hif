@@ -554,4 +554,14 @@ To enable use the -DUSE_ABSL_MAP=1
 
 
 
+## Why not XXX?
 
+### json
+
+* HIF is more dense than json.
+* json is not very fast to parse because it allows more arbitrary data serialization
+* json is very generic, and hence does not have code structure that tools can be built around
+
+### Binary serializers like protobuf/capnproto/....
+
+* 

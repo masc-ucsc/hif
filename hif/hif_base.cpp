@@ -37,17 +37,15 @@ void Hif_base::Statement::print_te(const std::string                       &star
 }
 
 void Hif_base::Statement::dump() const {
-  static const char *class2name[] = {
-    "node",
-    "assing",
-    "attr",
-    "open_call",
-    "close_call",
-    "open_def",
-    "close_def",
-    "end",
-    "use"
-  };
+  static const char *class2name[] = {"node",
+                                     "assing",
+                                     "attr",
+                                     "open_call",
+                                     "close_call",
+                                     "open_def",
+                                     "close_def",
+                                     "end",
+                                     "use"};
 
   std::cout << class2name[sclass];
 
@@ -60,4 +58,3 @@ void Hif_base::Statement::dump() const {
   print_te("  io  ", io);
   print_te("  attr", attr);
 }
-

@@ -8,7 +8,6 @@
 #include "hif/hif_write.hpp"
 
 void create_stmt() {
-
   auto stmt = Hif_write::create_assign();
 
   stmt.instance = "jojojo";
@@ -37,7 +36,6 @@ void create_stmt() {
 }
 
 void hif_write_test_1() {
-
   auto stmt = Hif_write::create_assign();
 
   stmt.instance = "jojojo";
@@ -58,7 +56,6 @@ void hif_write_test_1() {
 }
 
 void hif_write_test_1000() {
-
   auto stmt = Hif_write::create_assign();
 
   stmt.instance = "jojojo";
@@ -73,7 +70,7 @@ void hif_write_test_1000() {
 
   auto wr = Hif_write::create(std::string("hif_test_bench"), "hif_bench", "0.xxx");
 
-  for(auto i=0u;i<1000;++i) {
+  for (auto i = 0u; i < 1000; ++i) {
     wr->add(stmt);
   }
 
@@ -81,7 +78,6 @@ void hif_write_test_1000() {
 }
 
 void hif_rdwr_test_1000() {
-
   auto stmt = Hif_write::create_assign();
 
   stmt.instance = "jojojo";
@@ -96,7 +92,7 @@ void hif_rdwr_test_1000() {
 
   auto wr = Hif_write::create(std::string("hif_test_bench"), "hif_bench", "0.xxx");
 
-  for(auto i=0u;i<1000;++i) {
+  for (auto i = 0u; i < 1000; ++i) {
     wr->add(stmt);
   }
 
@@ -106,7 +102,7 @@ void hif_rdwr_test_1000() {
   assert(rd != nullptr);
 
   auto conta = 0u;
-  rd->each([&conta](const Hif_base::Statement &stmt) { ++conta; });
+  rd->each([&conta](const Hif_base::Statement& stmt) { ++conta; });
 
   benchmark::DoNotOptimize(!(conta == 1000));
 }
@@ -120,6 +116,7 @@ void hif_get_current_stmt() {
     auto stmt = rd->get_current_stmt();
     conta += static_cast<int>(stmt.type);
   }
+  benchmark::DoNotOptimize(conta);
 }
 
 static void BM_hif_stmt(benchmark::State& state) {

@@ -20,8 +20,11 @@
 
 class Hif_write : public Hif_base {
 public:
-  static std::shared_ptr<Hif_write> create(std::string_view fname, std::string_view tool, std::string_view version);
-  static std::shared_ptr<Hif_write> create(const std::string &fname, std::string_view tool, std::string_view version) {
+  static std::shared_ptr<Hif_write> create(std::string_view fname, std::string_view tool,
+                                           std::string_view version);
+  static std::shared_ptr<Hif_write> create(const std::string &fname,
+                                           std::string_view   tool,
+                                           std::string_view   version) {
     return create(std::string_view(fname.data(), fname.size()), tool, version);
   }
 
@@ -30,7 +33,6 @@ public:
   Hif_write(std::string_view sname, std::string_view tool, std::string_view version);
 
 protected:
-
   bool is_ok() const { return stbuff != nullptr; }
 
   // add_* adds data structure and likely to fbuff too

@@ -9,17 +9,20 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <cstring>
 #include <cassert>
+#include <cstring>
 #include <iostream>
 
-std::shared_ptr<Hif_write> Hif_write::create(std::string_view fname, std::string_view tool, std::string_view version) {
+std::shared_ptr<Hif_write> Hif_write::create(std::string_view fname,
+                                             std::string_view tool,
+                                             std::string_view version) {
   auto ptr = std::make_shared<Hif_write>(fname, tool, version);
 
   return ptr->is_ok() ? ptr : nullptr;
 }
 
-Hif_write::Hif_write(std::string_view fname, std::string_view tool, std::string_view version) {
+Hif_write::Hif_write(std::string_view fname, std::string_view tool,
+                     std::string_view version) {
   std::string sname(fname.data(), fname.size());
 
   const char *path = sname.c_str();
@@ -62,9 +65,9 @@ Hif_write::Hif_write(std::string_view fname, std::string_view tool, std::string_
 
   {
     auto conf_stmt = Hif_write::create_attr();
-    conf_stmt.add_attr("HIF",hif_version);
+    conf_stmt.add_attr("HIF", hif_version);
     conf_stmt.add_attr("tool", tool);
-    conf_stmt.add_attr("version",version);
+    conf_stmt.add_attr("version", version);
 
     add(conf_stmt);
   }
@@ -91,11 +94,11 @@ void Hif_write::write_idref(uint8_t ee, Hif_base::ID_cat ttt, std::string_view t
   }
 
   uint32_t ref = (pos << 3) | (ee << 1);
-  if (pos < 31) { // WARNING: if 31 is allowed it aliases with 0xFF end
+  if (pos < 31) {           // WARNING: if 31 is allowed it aliases with 0xFF end
     stbuff->add8(ref | 1);  // small
   } else {
     stbuff->add8(ref);
-    stbuff->add16(ref>>8);
+    stbuff->add16(ref >> 8);
   }
 }
 
@@ -116,7 +119,7 @@ void Hif_write::add_io(const Hif_base::Tuple_entry &ent) {
 
   if (!ent.lhs.empty()) {
     if (ent.rhs.empty())
-      ee |= 0x2; // last in lhs/rhs sequence
+      ee |= 0x2;  // last in lhs/rhs sequence
     write_idref(ee, ent.lhs_cat, ent.lhs);
   }
   if (!ent.rhs.empty()) {
@@ -150,7 +153,7 @@ void Hif_write::add(const Statement &stmt) {
 
   if (stmt.instance.empty()) {
     stbuff->add8(0xFF);  // no instance identifier
-  }else{
+  } else {
     write_idref(0x3, Hif_base::ID_cat::String_cat, stmt.instance);
   }
 
@@ -163,4 +166,3 @@ void Hif_write::add(const Statement &stmt) {
   }
   stbuff->add8(0xFF);  // END OF ATTRs
 }
-

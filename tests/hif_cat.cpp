@@ -25,11 +25,11 @@ int main(int argc, char **argv) {
   std::cout << "HIF version:" << hif_version;
   std::cout << " tool:" << rd->get_tool() << " version:" << rd->get_version() << "\n";
 
-  bool first=false;
+  bool first = false;
   rd->each([&first](const Hif_base::Statement &stmt) {
     if (first && stmt.sclass != Hif_base::Statement_class::Attr) {
       std::cerr << "not standard HIF. First entry must be attr\n";
-      first=false;
+      first = false;
     }
 
     stmt.dump();
