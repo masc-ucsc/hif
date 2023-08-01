@@ -259,6 +259,10 @@ uint8_t *Hif_read::read_te(uint8_t *ptr, uint8_t *ptr_end, std::vector<Tuple_ent
     bool last  = ee & 2;
 
     uint32_t pos = *ptr >> 3;  // 3 == ee + small bit
+    std::cerr << "read pos:" <<pos
+      << "ptr:" << (int)*ptr
+      << "\n";
+
     if (small) {
       ptr += 1;
     } else {
@@ -267,6 +271,7 @@ uint8_t *Hif_read::read_te(uint8_t *ptr, uint8_t *ptr_end, std::vector<Tuple_ent
       pos |= pos2;
       ptr += 3;
     }
+
 
     if (pos >= pos2id.size()) {
       std::cerr << "Hif_read corrupted st pos " << pos << " (aborting)\n";
