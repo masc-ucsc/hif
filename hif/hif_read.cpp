@@ -90,6 +90,10 @@ Hif_read::Hif_read(std::string_view fname) {
 
   filepos = 0;
 
+  if (idflist.empty()) {
+    return;
+  }
+
   read_idfile(idflist[0]);
 
   std::tie(ptr_base, ptr_size, ptr_fd) = open_file(stflist[0]);
