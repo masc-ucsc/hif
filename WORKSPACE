@@ -2,7 +2,7 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 git_repository(
-    name = "com_google_googletest",
+    name = "googletest",
     remote = "https://github.com/google/googletest",
     tag = "release-1.11.0",
 )
@@ -14,7 +14,7 @@ git_repository(
 #)
 
 git_repository(
-    name = "com_google_benchmark",
+    name = "google_benchmark",
     remote = "https://github.com/google/benchmark.git",
     tag = "v1.7.1",
 )
@@ -27,7 +27,7 @@ git_repository(
 
 # optional library. Used only when -DUSE_ABSL_MAP set (faster)
 http_archive(
-  name = "com_google_absl",
+  name = "abseil-cpp",
   urls = ["https://github.com/abseil/abseil-cpp/archive/04610889a913d29037205ca72e9d7fd7acc925fe.zip"],
   strip_prefix = "abseil-cpp-04610889a913d29037205ca72e9d7fd7acc925fe",
 )
