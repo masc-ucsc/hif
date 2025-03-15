@@ -14,6 +14,7 @@
 #include <cstring>
 #include <iostream>
 #include <iterator>
+#include <algorithm>
 
 std::shared_ptr<Hif_read> Hif_read::open(std::string_view fname) {
   auto ptr = std::make_shared<Hif_read>(fname);
