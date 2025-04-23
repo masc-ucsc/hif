@@ -5,7 +5,15 @@
 # For more details, please check https://github.com/bazelbuild/bazel/issues/18958
 ###############################################################################
 
+# Compiler rules
+bazel_dep(name = "rules_cc", version = "0.1.1")
+
+# Abseil cpp
 bazel_dep(name = "abseil-cpp", version = "20250127.1")
 
+# Google test
 bazel_dep(name = "googletest", version = "1.16.0.bcr.1", dev_dependency = True)
+
+# Google Benchmark
 bazel_dep(name = "google_benchmark", version = "1.9.2", dev_dependency = True)
+
