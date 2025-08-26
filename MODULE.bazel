@@ -6,7 +6,7 @@
 ###############################################################################
 
 # Compiler rules
-bazel_dep(name = "rules_cc", version = "0.2.0")
+bazel_dep(name = "rules_cc", version = "0.2.1")
 
 # Abseil cpp
 bazel_dep(name = "abseil-cpp", version = "20250512.1")
