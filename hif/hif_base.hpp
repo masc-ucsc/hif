@@ -256,8 +256,7 @@ public:
     bool is_use() const { return sclass == Statement_class::Use; }
 
     void dump() const;
-    void print_te(const std::string                       &start,
-                  const std::vector<Hif_base::Tuple_entry> io) const;
+    void print_tuple_entries(const std::vector<Hif_base::Tuple_entry> tuple_entries, bool is_attr=false) const;
   };
 
   static Statement create_node() { return Statement(Statement_class::Node); }
