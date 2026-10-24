@@ -14,5 +14,5 @@ bazel_dep(name = "abseil-cpp", version = "20250814.2")
 bazel_dep(name = "googletest", version = "1.17.0.bcr.2", dev_dependency = True)
 
 # Google Benchmark
-bazel_dep(name = "google_benchmark", version = "1.9.5", dev_dependency = True)
+bazel_dep(name = "google_benchmark", version = "1.10.0", dev_dependency = True)
 
